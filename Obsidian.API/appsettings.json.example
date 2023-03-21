@@ -1,0 +1,15 @@
+{
+    "Logging": {
+        "LogLevel": {
+            "Default": "Information",
+            "Microsoft.AspNetCore": "Warning"
+        }
+    },
+    "Auth0": {
+        "Authority": "<Auth0 Authority>",
+        "Audience": "obsidian-api",
+        "ClientId": "<ClientId>",
+        "ClientSecret": "<ClientSecret>"
+    },
+    "AllowedHosts": "*"
+}
