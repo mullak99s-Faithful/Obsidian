@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using ObsidianApp;
 
-namespace ObsidianApp
+namespace Obsidian.App.Client
 {
 	public class Program
 	{
