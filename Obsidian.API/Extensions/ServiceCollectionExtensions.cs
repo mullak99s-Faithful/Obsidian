@@ -1,11 +1,11 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using ObsidianAPI.Abstractions;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Obsidian.API.Abstractions;
 
-namespace ObsidianAPI.Extensions
+namespace Obsidian.API.Extensions
 {
 	public static class ServiceCollectionExtensions
 	{

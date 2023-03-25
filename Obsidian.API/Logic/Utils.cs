@@ -1,4 +1,4 @@
-﻿namespace ObsidianAPI.Logic
+﻿namespace Obsidian.API.Logic
 {
 	public static class Utils
 	{

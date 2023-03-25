@@ -1,15 +1,10 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using System.Text.Json;
-using Microsoft.AspNetCore.Mvc;
+using Obsidian.API.Static;
 using Obsidian.SDK.Enums;
 using Obsidian.SDK.Models;
-using ObsidianAPI.Static;
-using static System.Net.Mime.MediaTypeNames;
 
-namespace ObsidianAPI.Logic
+namespace Obsidian.API.Logic
 {
 	public interface ITextureLogic
 	{

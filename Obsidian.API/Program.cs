@@ -1,6 +1,4 @@
-using ObsidianAPI.Logic;
-
-namespace ObsidianAPI
+namespace Obsidian.API
 {
 	public class Program
 	{

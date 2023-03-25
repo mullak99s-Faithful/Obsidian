@@ -2,7 +2,7 @@
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace ObsidianAPI
+namespace Obsidian.API
 {
 	public class SecurityRequirementsOperationFilter : IOperationFilter
 	{

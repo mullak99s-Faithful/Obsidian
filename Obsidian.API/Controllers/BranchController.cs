@@ -1,12 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Obsidian.API.Logic;
 using Obsidian.SDK.Enums;
 using Obsidian.SDK.Models;
-using ObsidianAPI.Logic;
 using Swashbuckle.AspNetCore.Annotations;
-using System.Data;
 
-namespace ObsidianAPI.Controllers
+namespace Obsidian.API.Controllers
 {
 	[ApiController]
 	[Route("api/[controller]")]
@@ -23,7 +22,7 @@ namespace ObsidianAPI.Controllers
 			_logger = logger;
 		}
 
-		[HttpGet("GetBranchesForPackId/{id}")]
+		[HttpGet("GetForPackId/{id}")]
 		[ProducesResponseType(typeof(List<PackBranch>), 200)]
 		[SwaggerResponse(404, "Pack does not exist")]
 		public IActionResult GetBranchesForPackId([FromRoute] Guid id)
@@ -37,7 +36,7 @@ namespace ObsidianAPI.Controllers
 			return Ok(branches);
 		}
 
-		[HttpGet("GetBranchesForPackName/{name}")]
+		[HttpGet("GetForPackName/{name}")]
 		[ProducesResponseType(typeof(List<PackBranch>), 200)]
 		[SwaggerResponse(404, "Pack does not exist")]
 		public IActionResult GetBranchesForPackId([FromRoute] string name)
@@ -51,12 +50,28 @@ namespace ObsidianAPI.Controllers
 			return Ok(branches);
 		}
 
-		[HttpPost("AddBranch/{id}")]
+		[HttpPost("Add/{id}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:add-branch")]
 		public async Task<IActionResult> AddBranch([FromRoute] Guid id, string branchName, MinecraftVersion version)
 		{
 			return await _logic.AddBranch(id, branchName, version) ? Ok() : BadRequest();
+		}
+
+		[HttpPost("Edit/{branchId}")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:edit-branch")]
+		public async Task<IActionResult> DeleteBranch([FromRoute] Guid branchId, string? branchName, MinecraftVersion? version)
+		{
+			return await _logic.EditBranch(branchId, branchName, version) ? Ok() : BadRequest();
+		}
+
+		[HttpPost("Delete/{branchId}")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:delete-branch")]
+		public async Task<IActionResult> DeleteBranch([FromRoute] Guid branchId)
+		{
+			return await _logic.DeleteBranch(branchId) ? Ok() : BadRequest();
 		}
 	}
 }

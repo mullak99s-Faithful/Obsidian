@@ -1,7 +1,8 @@
-﻿using Obsidian.SDK.Models;
-using System.Text.Json;
+﻿using System.Text.Json;
+using Obsidian.SDK.Models;
+using Pack = Obsidian.SDK.Models.Pack;
 
-namespace ObsidianAPI.Static
+namespace Obsidian.API.Static
 {
 	public static class Globals
 	{
@@ -60,6 +61,10 @@ namespace ObsidianAPI.Static
 		{
 			List<Task> saveTasks = Packs!.Select(SavePack).ToList();
 			await Task.WhenAll(saveTasks);
+
+			// Delete undefined packs
+			foreach (string directory in Directory.GetDirectories(PacksRootPath).Where(x => Packs?.Select(y => y.Id).ToString() != Path.GetDirectoryName(x)))
+				Directory.Delete(directory, true);
 		}
 
 		public static async Task SavePack(Pack pack)
@@ -73,6 +78,10 @@ namespace ObsidianAPI.Static
 				Directory.CreateDirectory(branchPath);
 				await File.WriteAllTextAsync(Path.Combine(branchPath, "pack.mcmeta"), pack.CreatePackMCMeta(branch));
 			}
+
+			// Delete undefined branches
+			foreach (string directory in Directory.GetDirectories(packPath).Where(x => pack.Branches.Select(y => y.Id).ToString() != Path.GetDirectoryName(x)))
+				Directory.Delete(directory, true);
 
 			string json = JsonSerializer.Serialize(pack);
 

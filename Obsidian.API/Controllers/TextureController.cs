@@ -1,15 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Obsidian.API.Logic;
 using Obsidian.SDK.Enums;
-using Obsidian.SDK.Models;
-using ObsidianAPI.Logic;
 using Swashbuckle.AspNetCore.Annotations;
-using Swashbuckle.AspNetCore.Filters;
-using System;
-using System.Data;
-using System.Xml.Linq;
 
-namespace ObsidianAPI.Controllers
+namespace Obsidian.API.Controllers
 {
 	[ApiController]
 	[Route("api/[controller]")]

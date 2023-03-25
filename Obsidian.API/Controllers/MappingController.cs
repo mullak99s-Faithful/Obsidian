@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Obsidian.API.Logic;
 using Obsidian.SDK.Models;
-using ObsidianAPI.Logic;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace ObsidianAPI.Controllers
+namespace Obsidian.API.Controllers
 {
 	[ApiController]
 	[Route("api/[controller]")]
@@ -54,6 +54,30 @@ namespace ObsidianAPI.Controllers
 				return BadRequest("Please provide a name");
 
 			return await _logic.AddTextureMapping(name, file) ? Ok() : BadRequest("Invalid map");
+		}
+
+		[HttpPost("TextureMap/Rename/{mapGuid}")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:rename-mapping")]
+		public async Task<IActionResult> RenameTextureMapping([FromRoute] Guid mapGuid, string name)
+		{
+			if (string.IsNullOrEmpty(mapGuid.ToString()))
+				return BadRequest("Please provide an id");
+			if (string.IsNullOrEmpty(name))
+				return BadRequest("Please provide a name");
+
+			return await _logic.RenameTextureMapping(mapGuid, name) ? Ok() : BadRequest();
+		}
+
+		[HttpPost("TextureMap/Delete/{mapGuid}")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:rename-mapping")]
+		public async Task<IActionResult> RenameTextureMapping([FromRoute] Guid mapGuid)
+		{
+			if (string.IsNullOrEmpty(mapGuid.ToString()))
+				return BadRequest("Please provide an id");
+
+			return await _logic.DeleteTextureMapping(mapGuid) ? Ok() : BadRequest();
 		}
 	}
 }

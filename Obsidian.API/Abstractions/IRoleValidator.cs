@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
 
-namespace ObsidianAPI.Abstractions
+namespace Obsidian.API.Abstractions
 {
 	public interface IRoleValidator
 	{

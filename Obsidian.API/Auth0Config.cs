@@ -1,4 +1,4 @@
-﻿namespace ObsidianAPI
+﻿namespace Obsidian.API
 {
 	public class Auth0Config
 	{

@@ -1,9 +1,8 @@
-﻿using Obsidian.SDK.Models;
-using System.Text.Json;
+﻿using Obsidian.API.Static;
 using Obsidian.SDK.Enums;
-using ObsidianAPI.Static;
+using Obsidian.SDK.Models;
 
-namespace ObsidianAPI.Logic
+namespace Obsidian.API.Logic
 {
 	public interface IPackLogic
 	{
@@ -11,9 +10,12 @@ namespace ObsidianAPI.Logic
 		public Pack? GetPack(Guid guid);
 		public Pack? GetPack(string packName);
 		public Task<bool> AddPack(string packName, string description, Guid textureMappingsId);
-		public Task<bool> AddBranch(Guid guid, string branchName, MinecraftVersion version);
-		public Task<bool> AddPackPng(Guid guid, IFormFile packPng);
 		public Task<bool> EditPack(Guid id, string? packName, string? description, Guid? textureMappingsId);
+		public Task<bool> DeletePack(Guid id);
+		public Task<bool> AddBranch(Guid guid, string branchName, MinecraftVersion version);
+		public Task<bool> EditBranch(Guid branchGuid, string? branchName, MinecraftVersion? version);
+		public Task<bool> DeleteBranch(Guid branchGuid);
+		public Task<bool> AddPackPng(Guid guid, IFormFile packPng);
 	}
 
 	public class PackLogic : IPackLogic
@@ -61,10 +63,54 @@ namespace ObsidianAPI.Logic
 			return true;
 		}
 
+		public async Task<bool> DeletePack(Guid id)
+		{
+			Pack? pack = GetPack(id);
+			if (pack == null) return false;
+
+			Globals.Packs!.Remove(pack);
+			await Globals.SavePacks();
+			return true;
+		}
+
 		public async Task<bool> AddBranch(Guid guid, string branchName, MinecraftVersion version)
 		{
 			Pack? pack = GetPack(guid);
 			return pack != null && await AddBranchToPack(pack, branchName, version);
+		}
+
+		public async Task<bool> EditBranch(Guid branchGuid, string? branchName, MinecraftVersion? version)
+		{
+			Pack? pack = Globals.Packs?.Find(x => x.Branches.Any(y => y.Id == branchGuid));
+			if (pack == null) return false;
+
+			PackBranch? branch = pack?.Branches.Find(x => x.Id == branchGuid);
+			if (branch == null) return false;
+
+			pack!.Branches.Remove(branch);
+
+			if (!string.IsNullOrWhiteSpace(branchName))
+				branch.Name = branchName;
+			if (version != null)
+				branch.Version = version.Value;
+
+			pack.Branches.Add(branch);
+
+			await Globals.SavePack(pack);
+			return true;
+		}
+
+		public async Task<bool> DeleteBranch(Guid branchGuid)
+		{
+			Pack? pack = Globals.Packs?.Find(x => x.Branches.Any(y => y.Id == branchGuid));
+			if (pack == null) return false;
+
+			PackBranch? branch = pack?.Branches.Find(x => x.Id == branchGuid);
+			if (branch == null) return false;
+
+			pack!.Branches.Remove(branch);
+			await Globals.SavePack(pack);
+			return true;
 		}
 
 		public async Task<bool> AddPackPng(Guid guid, IFormFile packPng)

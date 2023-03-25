@@ -1,20 +1,12 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Auth0.ManagementApi;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Cors.Infrastructure;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.OpenApi.Models;
-using ObsidianAPI.Abstractions;
-using ObsidianAPI.Extensions;
-using ObsidianAPI.Logic;
-using ObsidianAPI.Services;
+using Obsidian.API.Abstractions;
+using Obsidian.API.Extensions;
+using Obsidian.API.Logic;
+using Obsidian.API.Services;
 using Swashbuckle.AspNetCore.SwaggerUI;
 
-namespace ObsidianAPI
+namespace Obsidian.API
 {
 	public class Startup
 	{

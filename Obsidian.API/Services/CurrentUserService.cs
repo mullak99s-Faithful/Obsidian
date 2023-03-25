@@ -1,12 +1,10 @@
-﻿using Auth0.ManagementApi;
+﻿using System.Security.Claims;
+using Auth0.ManagementApi;
 using Auth0.ManagementApi.Models;
 using Newtonsoft.Json.Linq;
-using ObsidianAPI.Abstractions;
-using System.Net.Http.Headers;
-using System.Security.Claims;
-using System.Security.Principal;
+using Obsidian.API.Abstractions;
 
-namespace ObsidianAPI.Services
+namespace Obsidian.API.Services
 {
 	public interface ICurrentUserService
 	{

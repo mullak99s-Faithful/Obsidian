@@ -1,8 +1,8 @@
-﻿using Obsidian.SDK.Models;
-using System.Text.Json;
-using ObsidianAPI.Static;
+﻿using System.Text.Json;
+using Obsidian.API.Static;
+using Obsidian.SDK.Models;
 
-namespace ObsidianAPI.Logic
+namespace Obsidian.API.Logic
 {
 	public interface IMappingLogic
 	{
@@ -10,6 +10,8 @@ namespace ObsidianAPI.Logic
 		public TextureMapping? GetTextureMapping(Guid guid);
 		public TextureMapping? GetTextureMapping(string packName);
 		public Task<bool> AddTextureMapping(string name, IFormFile file);
+		public Task<bool> RenameTextureMapping(Guid mapGuid, string name);
+		public Task<bool> DeleteTextureMapping(Guid mapGuid);
 	}
 
 	public class MappingLogic : IMappingLogic
@@ -53,6 +55,35 @@ namespace ObsidianAPI.Logic
 				Console.WriteLine(e);
 			}
 			return false;
+		}
+
+		public async Task<bool> RenameTextureMapping(Guid mapGuid, string name)
+		{
+			TextureMapping? texMap = Globals.TextureMappings!.Find(x => x.Id == mapGuid);
+			if (texMap != null) return false;
+
+			Globals.TextureMappings.Remove(texMap);
+
+			if (!string.IsNullOrEmpty(name))
+				texMap!.Name = name;
+
+			Globals.TextureMappings.Add(texMap);
+
+			await Globals.SaveTextureMaps();
+			return true;
+		}
+
+		public async Task<bool> DeleteTextureMapping(Guid mapGuid)
+		{
+			TextureMapping? texMap = Globals.TextureMappings?.Find(x => x.Id == mapGuid);
+			if (texMap != null) return false;
+
+			if (Globals.Packs?.Any(x => x.TextureMappingsId == mapGuid) ?? false)
+				return false;
+
+			Globals.TextureMappings?.Remove(texMap!);
+			await Globals.SaveTextureMaps();
+			return true;
 		}
 	}
 }
