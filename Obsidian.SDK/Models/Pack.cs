@@ -23,8 +23,8 @@ namespace Obsidian.SDK.Models
 
 		public string CreatePackMCMeta(PackBranch branch)
 		{
-			Minecraft.Pack pack = new Minecraft.Pack(this, branch.Version);
-			PackWrapper wrapper = new PackWrapper(pack);
+			Minecraft.Pack pack = new(this, branch.Version);
+			PackWrapper wrapper = new(pack);
 			var options = new JsonSerializerOptions
 			{
 				PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

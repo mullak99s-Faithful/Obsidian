@@ -12,11 +12,13 @@
 
 		public static void CopyFile(string sourceFilePath, string destinationFilePath, bool overwrite = false)
 		{
-			if (File.Exists(sourceFilePath))
-			{
-				Directory.CreateDirectory(Path.GetDirectoryName(destinationFilePath));
-				File.Copy(sourceFilePath, destinationFilePath, overwrite);
-			}
+			if (!File.Exists(sourceFilePath)) return;
+
+			string? dir = Path.GetDirectoryName(destinationFilePath);
+			if (string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir)) return;
+
+			Directory.CreateDirectory(dir);
+			File.Copy(sourceFilePath, destinationFilePath, overwrite);
 		}
 	}
 }

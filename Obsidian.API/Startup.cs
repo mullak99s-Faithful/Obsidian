@@ -39,9 +39,6 @@ namespace Obsidian.API
 
 			BuildServiceProviderAsync(services).Wait();
 
-			//services.AddRoleBasedAuthorizationWithRoles(_currentUserService.GetRolePolicies());
-			services.AddPermissionBasedAuthorizationWithPermissions(_currentUserService.GetPermissions());
-
 			services.AddSwaggerGen(c =>
 			{
 				c.SwaggerDoc("v1", new OpenApiInfo { Title = "Obsidian", Version = "v1" });
@@ -75,7 +72,7 @@ namespace Obsidian.API
 				app.UseSwaggerUI(c =>
 				{
 					c.DefaultModelRendering(ModelRendering.Model);
-					c.SwaggerEndpoint("/swagger/v1/swagger.json", "ObsidianAPI");
+					c.SwaggerEndpoint("/swagger/v1/swagger.json", "Obsidian.API");
 					c.OAuthClientId(AuthConfig.ClientId);
 				});
 			}
@@ -99,13 +96,18 @@ namespace Obsidian.API
 		private async Task BuildServiceProviderAsync(IServiceCollection services)
 		{
 			var provider = services.BuildServiceProvider();
-
 			var configuration = provider.GetService<IConfiguration>();
-			_currentUserService = await CurrentUserService.CreateAsync(configuration);
 
-			services.AddSingleton<IRoleValidator>(_currentUserService);
-			services.AddSingleton<IPermissionValidator>(_currentUserService);
-			services.AddSingleton<ICurrentUserService>(_currentUserService);
+			if (configuration != null)
+			{
+				_currentUserService = await CurrentUserService.CreateAsync(configuration);
+				services.AddSingleton<IRoleValidator>(_currentUserService);
+				services.AddSingleton<IPermissionValidator>(_currentUserService);
+				services.AddSingleton<ICurrentUserService>(_currentUserService);
+
+				//services.AddRoleBasedAuthorizationWithRoles(_currentUserService.GetRolePolicies());
+				services.AddPermissionBasedAuthorizationWithPermissions(_currentUserService.GetPermissions());
+			}
 		}
 	}
 }

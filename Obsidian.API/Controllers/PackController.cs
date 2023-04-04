@@ -67,10 +67,21 @@ namespace Obsidian.API.Controllers
 
 		[HttpPost("Edit/{id}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
-		[Authorize("write:add-pack")]
-		public async Task<IActionResult> AddPack([FromRoute] Guid id, string? name, string? description, Guid? textureMappings)
+		[Authorize("write:edit-pack")]
+		public async Task<IActionResult> EditPack([FromRoute] Guid id, string? name, string? description, Guid? textureMappings)
 		{
 			bool success = await _packLogic.EditPack(id, name, description, textureMappings);
+			if (!success)
+				return BadRequest();
+			return Ok();
+		}
+
+		[HttpPost("Delete/{id}")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:delete-pack")]
+		public async Task<IActionResult> DeletePack([FromRoute] Guid id)
+		{
+			bool success = await _packLogic.DeletePack(id);
 			if (!success)
 				return BadRequest();
 			return Ok();
