@@ -15,7 +15,7 @@ namespace Obsidian.API.Static
 
 		public static List<Pack>? Packs { get; set; }
 		public static List<TextureMapping>? TextureMappings { get; set; }
-		//public static List<ModelMapping>? ModelMappings { get; set; }
+		public static List<ModelMapping>? ModelMappings { get; set; }
 		public static List<MasterAsset>? MasterAssets { get; set; }
 
 		public static void Init()

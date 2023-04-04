@@ -1,9 +1,9 @@
 ﻿namespace Obsidian.SDK.Models
 {
-	public class TextureMapping
+	public class ModelMapping
 	{
 		public Guid Id { get; set; }
 		public string Name { get; set; }
-		public List<Asset> Assets { get; set; }
+		//public List<Model> Models { get; set; }
 	}
 }
