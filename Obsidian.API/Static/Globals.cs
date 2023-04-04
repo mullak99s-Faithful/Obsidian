@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Text.Json;
+﻿using System.Text.Json;
 using Obsidian.SDK.Models;
 using Pack = Obsidian.SDK.Models.Pack;
 
@@ -7,14 +6,16 @@ namespace Obsidian.API.Static
 {
 	public static class Globals
 	{
-		public static string PacksRootPath { get; set; }
-		public static string TextureMappingsRootPath { get; set; }
-		public static string MasterAssetsRootPath { get; set; }
+		public static string PacksRootPath { get; set; } = string.Empty;
+		public static string TextureMappingsRootPath { get; set; } = string.Empty;
+		public static string ModelMappingsRootPath { get; set; } = string.Empty;
+		public static string MasterAssetsRootPath { get; set; } = string.Empty;
 
 		private static bool _isInitialized;
 
 		public static List<Pack>? Packs { get; set; }
 		public static List<TextureMapping>? TextureMappings { get; set; }
+		//public static List<ModelMapping>? ModelMappings { get; set; }
 		public static List<MasterAsset>? MasterAssets { get; set; }
 
 		public static void Init()
@@ -22,11 +23,13 @@ namespace Obsidian.API.Static
 			if (!_isInitialized)
 			{
 				PacksRootPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "packs");
-				TextureMappingsRootPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "texturemappings");
+				TextureMappingsRootPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "mappings", "textures");
+				ModelMappingsRootPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "mappings", "models");
 				MasterAssetsRootPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "masterassets");
 
 				Directory.CreateDirectory(PacksRootPath);
 				Directory.CreateDirectory(TextureMappingsRootPath);
+				Directory.CreateDirectory(ModelMappingsRootPath);
 				Directory.CreateDirectory(MasterAssetsRootPath);
 				_isInitialized = true;
 
@@ -52,7 +55,7 @@ namespace Obsidian.API.Static
 					}
 					catch (Exception e)
 					{
-						Console.WriteLine(e);
+						Console.WriteLine($"Error loading pack '{pack}': {e}");
 					}
 				}
 			}
@@ -64,11 +67,15 @@ namespace Obsidian.API.Static
 			await Task.WhenAll(saveTasks);
 
 			// Delete undefined packs
-			foreach (string? directory in Directory.GetDirectories(PacksRootPath).Select(x => Packs!.Find(y => y.Id.ToString() != Path.GetDirectoryName(x))).Select(z => z?.Id.ToString()))
+			string?[] invalidPacks = Directory.GetDirectories(PacksRootPath).Select(x => Packs!.Find(y => y.Id.ToString() != Path.GetDirectoryName(x))).Select(z => z?.Id.ToString()).ToArray();
+			await Task.Run(() =>
 			{
-				if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory)) continue;
-				Directory.Delete(directory, true);
-			}
+				Parallel.ForEach(invalidPacks, pack =>
+				{
+					if (!string.IsNullOrWhiteSpace(pack) && Directory.Exists(pack))
+						Directory.Delete(pack, true);
+				});
+			});
 		}
 
 		public static async Task SavePack(Pack pack)
@@ -84,11 +91,17 @@ namespace Obsidian.API.Static
 			}
 
 			// Delete undefined branches
-			foreach (string directory in Directory.GetDirectories(packPath).Where(x => pack.Branches.Select(y => y.Id).ToString() != Path.GetDirectoryName(x)))
-				Directory.Delete(directory, true);
+			string[] directoriesToDelete = Directory.GetDirectories(packPath).Where(x => !pack.Branches.Select(y => y.Id.ToString()).Contains(Path.GetFileName(x))).ToArray();
+			await Task.Run(() =>
+			{
+				Parallel.ForEach(directoriesToDelete, directory =>
+				{
+					if (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory))
+						Directory.Delete(directory, true);
+				});
+			});
 
 			string json = JsonSerializer.Serialize(pack);
-
 			string jsonPath = Path.Combine(packPath, "pack.json");
 			File.Delete(jsonPath);
 			await File.WriteAllTextAsync(jsonPath, json);
@@ -111,7 +124,7 @@ namespace Obsidian.API.Static
 					}
 					catch (Exception e)
 					{
-						Console.WriteLine(e);
+						Console.WriteLine($"Error loading map '{map}': {e}");
 					}
 				}
 			}
