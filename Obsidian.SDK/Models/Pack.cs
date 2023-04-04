@@ -14,6 +14,7 @@ namespace Obsidian.SDK.Models
 		{
 			Id = Guid.NewGuid();
 			Name = name;
+			Description = description;
 			TextureMappingsId = textureMappingsId;
 		}
 

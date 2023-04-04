@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Obsidian.SDK.Models
 {
@@ -6,13 +7,16 @@ namespace Obsidian.SDK.Models
 	{
 		public string Path { get; set; }
 
-		[DefaultValue(null)]
-		public string? MCMeta { get; set; }
+		[DefaultValue(false)]
+		public bool MCMeta { get; set; }
 		public MCVersion MCVersion { get; set; }
+
+		[JsonIgnore]
+		public string? MCMetaPath => MCMeta ? $"{Path}.mcmeta" : null;
 
 		public override string ToString()
 		{
-			return MCMeta != null ? $"[{MCVersion}]: {Path} | ({MCMeta})" : $"[{MCVersion}]: {Path}";
+			return MCMeta ? $"[{MCVersion}]: {Path} | ({MCMetaPath})" : $"[{MCVersion}]: {Path}";
 		}
 	}
 }

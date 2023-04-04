@@ -61,6 +61,7 @@ namespace Obsidian.API.Controllers
 
 		[HttpGet("Texture/GeneratePacks")]
 		[Authorize("write:generate-packs")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
 		public IActionResult GenerateAllPacks([FromQuery] string packIds)
 		{
 			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
@@ -68,6 +69,13 @@ namespace Obsidian.API.Controllers
 				return BadRequest("Please provide pack ids");
 
 			return _logic.GeneratePacks(packIdList) ? Ok() : BadRequest("Invalid");
+		}
+
+		[HttpGet("Texture/Search/{packId}")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		public IActionResult TextureSearch([FromRoute] Guid packId, [FromQuery] string query)
+		{
+			return Ok(_logic.SearchForTextures(packId, query));
 		}
 	}
 }

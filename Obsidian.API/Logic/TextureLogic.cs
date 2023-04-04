@@ -11,6 +11,7 @@ namespace Obsidian.API.Logic
 		public Task<bool> AddTexture(string textureName, List<Guid> packIds, IFormFile textureFile, IFormFile? mcMetaFile);
 		public bool ImportPack(MinecraftVersion version, List<Guid> packIds, IFormFile packFile, bool overwrite);
 		public bool GeneratePacks(List<Guid> packIds);
+		public List<Asset> SearchForTextures(Guid packId, string searchQuery);
 	}
 
 	public class TextureLogic : ITextureLogic
@@ -109,15 +110,34 @@ namespace Obsidian.API.Logic
 						string fDest = Path.Combine(dest, t.Path);
 						await Utils.CopyFile(textureFile, fDest);
 
-						if (t.MCMeta != null && mcMetaFile != null)
+						if (t.MCMeta && mcMetaFile != null)
 						{
-							string fDestMeta = Path.Combine(dest, t.MCMeta);
+							string fDestMeta = Path.Combine(dest, t.MCMetaPath);
 							await Utils.CopyFile(mcMetaFile, fDestMeta);
 						}
 					}
 				}
 			}
 			return success;
+		}
+
+		public List<Asset> SearchForTextures(Guid packId, string searchQuery)
+		{
+			Pack? pack = Globals.Packs?.Find(x => x.Id == packId);
+
+			if (pack == null)
+				return new List<Asset>();
+
+			TextureMapping? map = Globals.TextureMappings?.Find(x => x.Id == pack.TextureMappingsId);
+
+			if (map == null)
+				return new List<Asset>();
+
+			Asset? exactMatch = map.Assets.Find(x => x.Names.Any(y => string.Equals(y, searchQuery.ToUpper().Trim(), StringComparison.Ordinal)));
+
+			return exactMatch != null
+				? new List<Asset> { exactMatch }
+				: map.Assets.FindAll(x => x.TexturePaths.Any(y => y.Path.Contains($"\\{searchQuery}")));
 		}
 
 		public bool ImportPack(MinecraftVersion version, List<Guid> packIds, IFormFile packFile, bool overwrite)
@@ -149,7 +169,7 @@ namespace Obsidian.API.Logic
 					Asset? asset = textureMapping.Assets.Find(x => x.TexturePaths.Any(y => y.Path == entryPath));
 					if (asset == null)
 					{
-						asset = textureMapping.Assets.Find(x => x.TexturePaths.Any(y => y.MCMeta == entryPath));
+						asset = textureMapping.Assets.Find(x => x.TexturePaths.Any(y => y.MCMeta && y.MCMetaPath == entryPath));
 						if (asset == null)
 						{
 							success = false;
@@ -204,8 +224,8 @@ namespace Obsidian.API.Logic
 						Parallel.ForEach(asset.TexturePaths.Where(x => x.MCVersion.IsMatchingVersion(branch.Version)), tex =>
 						{
 							Utils.CopyFile(sourceFile, Path.Combine(dest, tex.Path), true);
-							if (tex.MCMeta != null)
-								Utils.CopyFile($"{sourceFile}.mcmeta", Path.Combine(dest, tex.MCMeta), true);
+							if (tex.MCMeta)
+								Utils.CopyFile($"{sourceFile}.mcmeta", Path.Combine(dest, tex.MCMetaPath), true);
 						});
 					});
 

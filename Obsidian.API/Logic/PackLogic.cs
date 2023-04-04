@@ -21,9 +21,7 @@ namespace Obsidian.API.Logic
 	public class PackLogic : IPackLogic
 	{
 		public PackLogic()
-		{
-			Globals.Init();
-		}
+			=> Globals.Init();
 
 		public IEnumerable<Pack> GetPacks()
 			=> Globals.Packs!;
@@ -82,7 +80,6 @@ namespace Obsidian.API.Logic
 		public async Task<bool> EditBranch(Guid branchGuid, string? branchName, MinecraftVersion? version)
 		{
 			Pack? pack = Globals.Packs?.Find(x => x.Branches.Any(y => y.Id == branchGuid));
-			if (pack == null) return false;
 
 			PackBranch? branch = pack?.Branches.Find(x => x.Id == branchGuid);
 			if (branch == null) return false;
@@ -103,7 +100,6 @@ namespace Obsidian.API.Logic
 		public async Task<bool> DeleteBranch(Guid branchGuid)
 		{
 			Pack? pack = Globals.Packs?.Find(x => x.Branches.Any(y => y.Id == branchGuid));
-			if (pack == null) return false;
 
 			PackBranch? branch = pack?.Branches.Find(x => x.Id == branchGuid);
 			if (branch == null) return false;

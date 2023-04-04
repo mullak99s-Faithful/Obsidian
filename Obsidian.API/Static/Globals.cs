@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Linq;
+using System.Text.Json;
 using Obsidian.SDK.Models;
 using Pack = Obsidian.SDK.Models.Pack;
 
@@ -63,8 +64,11 @@ namespace Obsidian.API.Static
 			await Task.WhenAll(saveTasks);
 
 			// Delete undefined packs
-			foreach (string directory in Directory.GetDirectories(PacksRootPath).Where(x => Packs?.Select(y => y.Id).ToString() != Path.GetDirectoryName(x)))
+			foreach (string? directory in Directory.GetDirectories(PacksRootPath).Select(x => Packs!.Find(y => y.Id.ToString() != Path.GetDirectoryName(x))).Select(z => z?.Id.ToString()))
+			{
+				if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory)) continue;
 				Directory.Delete(directory, true);
+			}
 		}
 
 		public static async Task SavePack(Pack pack)
