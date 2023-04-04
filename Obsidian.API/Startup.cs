@@ -51,7 +51,7 @@ namespace Obsidian.API
 					{
 						Implicit = new OpenApiOAuthFlow
 						{
-							AuthorizationUrl = new Uri($"{AuthConfig.Authority}authorize?audience={AuthConfig.Audience}"),
+							AuthorizationUrl = new Uri($"{AuthConfig.Authority}/authorize?audience={AuthConfig.Audience}"),
 							Scopes = new Dictionary<string, string>
 							{
 								{ "openid", "OpenID" }

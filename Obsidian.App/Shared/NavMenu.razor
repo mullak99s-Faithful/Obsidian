@@ -1,39 +1,17 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">ObsidianApp</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
-
-<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="oi oi-plus" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="fetchdata">
-                <span class="oi oi-list-rich" aria-hidden="true"></span> Fetch data
-            </NavLink>
-        </div>
-    </nav>
-</div>
-
-@code {
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
-}
+﻿<nav class="navbar navbar-expand-md navbar-dark">
+	<div class="container-fluid">
+		<a class="navbar-brand" href="">Obsidian</a>
+		<div class="collapse navbar-collapse">
+			<ul class="navbar-nav d-flex justify-content-between me-auto mb-2 mb-md-0 me-auto">
+				<li class="nav-item">
+					<NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+						<span class="oi oi-home" aria-hidden="true"></span> Home
+					</NavLink>
+				</li>
+			</ul>
+		</div>
+		<div class="collapse navbar-collapse flex-grow-0">
+			<AccessControl />
+		</div>
+	</div>
+</nav>
