@@ -35,7 +35,7 @@ namespace Obsidian.API.Logic
 						string rawJson = File.ReadAllText(map);
 						TextureMapping? mapObj = JsonSerializer.Deserialize<TextureMapping>(rawJson);
 						if (mapObj != null)
-							Globals.TextureMappings.Add(mapObj);
+							Globals.TextureMappings?.Add(mapObj);
 					}
 					catch (Exception e)
 					{

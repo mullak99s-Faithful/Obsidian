@@ -12,7 +12,7 @@ namespace Obsidian.SDK.Models
 		public MCVersion MCVersion { get; set; }
 
 		[JsonIgnore]
-		public string? MCMetaPath => MCMeta ? $"{Path}.mcmeta" : null;
+		public string MCMetaPath => MCMeta ? $"{Path}.mcmeta" : string.Empty;
 
 		public override string ToString()
 		{

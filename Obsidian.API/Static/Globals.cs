@@ -36,7 +36,7 @@ namespace Obsidian.API.Static
 		}
 		public static void LoadPacks()
 		{
-			string[] packs = Directory.GetDirectories(Globals.PacksRootPath);
+			string[] packs = Directory.GetDirectories(PacksRootPath);
 			Packs = new List<Pack>();
 			foreach (string pack in packs)
 			{
@@ -48,7 +48,7 @@ namespace Obsidian.API.Static
 						string rawJson = File.ReadAllText(jsonPath);
 						Pack? packObj = JsonSerializer.Deserialize<Pack>(rawJson);
 						if (packObj != null)
-							Globals.Packs.Add(packObj);
+							Packs.Add(packObj);
 					}
 					catch (Exception e)
 					{
@@ -96,8 +96,8 @@ namespace Obsidian.API.Static
 
 		public static void LoadTextureMappings()
 		{
-			string[] jsons = Directory.GetFiles(Globals.TextureMappingsRootPath);
-			Globals.TextureMappings = new List<TextureMapping>();
+			string[] jsons = Directory.GetFiles(TextureMappingsRootPath);
+			TextureMappings = new List<TextureMapping>();
 			foreach (string map in jsons)
 			{
 				if (File.Exists(map))
@@ -107,7 +107,7 @@ namespace Obsidian.API.Static
 						string rawJson = File.ReadAllText(map);
 						TextureMapping? mapObj = JsonSerializer.Deserialize<TextureMapping>(rawJson);
 						if (mapObj != null)
-							Globals.TextureMappings.Add(mapObj);
+							TextureMappings.Add(mapObj);
 					}
 					catch (Exception e)
 					{
@@ -119,14 +119,14 @@ namespace Obsidian.API.Static
 
 		public static async Task SaveTextureMaps()
 		{
-			List<Task> saveTasks = Globals.TextureMappings!.Select(SaveTextureMap).ToList();
+			List<Task> saveTasks = TextureMappings!.Select(SaveTextureMap).ToList();
 			await Task.WhenAll(saveTasks);
 		}
 
 		public static async Task SaveTextureMap(TextureMapping map)
 		{
 			string json = JsonSerializer.Serialize(map);
-			string jsonPath = Path.Combine(Globals.TextureMappingsRootPath, $"{map.Id}.json");
+			string jsonPath = Path.Combine(TextureMappingsRootPath, $"{map.Id}.json");
 			File.Delete(jsonPath);
 			await File.WriteAllTextAsync(jsonPath, json);
 		}

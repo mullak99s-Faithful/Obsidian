@@ -17,9 +17,7 @@ namespace Obsidian.API.Logic
 	public class MappingLogic : IMappingLogic
 	{
 		public MappingLogic()
-		{
-			Globals.Init();
-		}
+			=> Globals.Init();
 
 		public IEnumerable<TextureMapping> GetTextureMappings()
 			=> Globals.TextureMappings!;
@@ -60,12 +58,12 @@ namespace Obsidian.API.Logic
 		public async Task<bool> RenameTextureMapping(Guid mapGuid, string name)
 		{
 			TextureMapping? texMap = Globals.TextureMappings!.Find(x => x.Id == mapGuid);
-			if (texMap != null) return false;
+			if (texMap == null) return false;
 
 			Globals.TextureMappings.Remove(texMap);
 
 			if (!string.IsNullOrEmpty(name))
-				texMap!.Name = name;
+				texMap.Name = name;
 
 			Globals.TextureMappings.Add(texMap);
 
