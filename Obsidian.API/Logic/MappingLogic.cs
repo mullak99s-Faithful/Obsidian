@@ -7,6 +7,8 @@ namespace Obsidian.API.Logic
 	public interface IMappingLogic
 	{
 		public IEnumerable<TextureMapping> GetTextureMappings();
+		public IEnumerable<Guid> GetTextureMappingIds();
+		public string? GetTextureMappingName(Guid guid);
 		public TextureMapping? GetTextureMapping(Guid guid);
 		public TextureMapping? GetTextureMapping(string packName);
 		public Task<bool> AddTextureMapping(string name, IFormFile file);
@@ -21,6 +23,12 @@ namespace Obsidian.API.Logic
 
 		public IEnumerable<TextureMapping> GetTextureMappings()
 			=> Globals.TextureMappings!;
+
+		public IEnumerable<Guid> GetTextureMappingIds()
+			=> Globals.TextureMappings!.Select(x => x.Id);
+
+		public string? GetTextureMappingName(Guid guid)
+			=> Globals.TextureMappings!.Find(x => x.Id == guid)?.Name;
 
 		public TextureMapping? GetTextureMapping(Guid guid)
 			=> Globals.TextureMappings!.Find(x => x.Id == guid);

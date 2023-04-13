@@ -11,11 +11,11 @@
 <ul class="navbar-nav d-flex justify-content-between me-auto mb-2 mb-md-0 ms-auto">
 	<AuthorizeView>
 		<Authorized>
-			<li class="nav-item">
+			@*<li class="nav-item">
 				<NavLink class="nav-link" href="#" title="Profile" Match="NavLinkMatch.All">
 					<img src="@profilePictureUrl" alt="@context.User.Identity.Name" />
 				</NavLink>
-			</li>
+			</li>*@
 			<li class="nav-item">
 				<NavLink class="nav-link" href="#" title="Logout" @onclick="BeginSignOut" Match="NavLinkMatch.All">
 					<span class="oi oi-account-logout" aria-hidden="true"></span>
@@ -33,38 +33,9 @@
 </ul>
 
 @code{
-	private string profilePictureUrl;
-
 	private async Task BeginSignOut(MouseEventArgs args)
 	{
 		await SignOutManager.SetSignOutState();
 		Navigation.NavigateTo("authentication/logout");
-	}
-
-	protected override async Task OnInitializedAsync()
-	{
-		var accessTokenResult = await AccessTokenProvider.RequestAccessToken();
-
-		if (accessTokenResult.TryGetToken(out var accessToken))
-		{
-			HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.Value);
-
-			var response = await HttpClient.GetAsync("https://discord.com/api/users/@me");
-
-			if (response.IsSuccessStatusCode)
-			{
-				var content = await response.Content.ReadAsStringAsync();
-				var user = JsonSerializer.Deserialize<DiscordUser>(content);
-
-				if (user != null)
-					profilePictureUrl = $"https://cdn.discordapp.com/avatars/{user.Id}/{user.Avatar}.png";
-			}
-		}
-	}
-
-	private class DiscordUser
-	{
-		public string Id { get; set; }
-		public string Avatar { get; set; }
 	}
 }

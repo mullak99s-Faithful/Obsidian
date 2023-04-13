@@ -32,6 +32,31 @@ namespace Obsidian.API.Controllers
 			return Ok(maps);
 		}
 
+		[HttpGet("TextureMap/GetAllIds")]
+		[ProducesResponseType(typeof(IEnumerable<Guid>), 200)]
+		[SwaggerResponse(404, "No texture mappings exist")]
+		public IActionResult GetTextureMappingIds()
+		{
+			IEnumerable<Guid> maps = _logic.GetTextureMappingIds();
+			if (!maps.Any())
+				return NotFound();
+			return Ok(maps);
+		}
+
+		[HttpGet("TextureMap/GetName/{id}")]
+		[ProducesResponseType(typeof(string), 200)]
+		[SwaggerResponse(404, "No texture mappings exist")]
+		public IActionResult GetTextureMappingName([FromRoute] Guid id)
+		{
+			if (string.IsNullOrWhiteSpace(id.ToString()))
+				return BadRequest("No id provided");
+
+			string? mapName = _logic.GetTextureMappingName(id);
+			if (string.IsNullOrWhiteSpace(mapName))
+				return NotFound();
+			return Ok(mapName);
+		}
+
 		[HttpGet("TextureMap/Get/{id}")]
 		[ProducesResponseType(typeof(TextureMapping), 200)]
 		[SwaggerResponse(404, "Texture mapping does not exist")]

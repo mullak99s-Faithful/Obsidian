@@ -1,0 +1,43 @@
+﻿@page "/mappings/textures"
+@using Obsidian.SDK.Models
+
+<PageTitle>Obsidian | Texture Mappings</PageTitle>
+
+<h1>Texture Mappings</h1>
+
+<label>Texture Mapping:</label>
+<select @onchange="e => SelectMapping(e.Value?.ToString() ?? string.Empty)">
+	<option value disabled selected="@(_selectedMapping == null)" />
+	@if (_mappings is { Count: > 0 })
+	{
+		foreach (var mapping in _mappings)
+		{
+			<option value="@mapping.Key" selected="@(mapping.Key == _selectedMapping)">@mapping.Value</option>
+		}
+	}
+</select>
+@if (_selectedMapping != null)
+{
+	@if (_loadingMapping)
+	{
+		<p>Loading...</p>
+	}
+	else if (_textureMapping != null)
+	{
+		@if (_textureMapping.Assets is {Count: > 0})
+		{
+			@foreach (Asset texAsset in _textureMapping.Assets)
+			{
+				<p>@texAsset.ToString()</p>
+			}
+		}
+		else
+		{
+			<p>No assets within @_textureMapping.Name</p>
+		}
+	}
+	else
+	{
+		<p>Error loading mapping!</p>
+	}
+}

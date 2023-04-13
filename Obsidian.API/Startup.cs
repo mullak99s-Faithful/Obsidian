@@ -22,7 +22,16 @@ namespace Obsidian.API
 
 		public void ConfigureServices(IServiceCollection services)
 		{
-			services.AddCors(options => options.AddDefaultPolicy(new CorsPolicy { Origins = { Configuration["AllowedHosts"] } }));
+			services.AddCors(options =>
+			{
+				options.AddDefaultPolicy(builder =>
+				{
+					builder.WithOrigins(Configuration["AllowedHosts"])
+						.AllowAnyMethod()
+						.AllowAnyHeader()
+						.WithHeaders("Authorization");
+				});
+			});
 			services.AddRouting(options => options.LowercaseUrls = true);
 			services.AddControllers();
 

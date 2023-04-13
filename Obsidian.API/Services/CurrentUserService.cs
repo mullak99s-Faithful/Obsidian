@@ -57,7 +57,7 @@ namespace Obsidian.API.Services
 			var auth0Domain = configuration["Auth0:Authority"];
 
 			var managementApiToken = await GetManagementApiTokenAsync(auth0Domain, auth0ManagementApiClientId, auth0ManagementApiClientSecret);
-			var managementApiBaseUri = new Uri($"{auth0Domain}api/v2/");
+			var managementApiBaseUri = new Uri($"{auth0Domain}/api/v2/");
 			var managementApiClient = new ManagementApiClient(managementApiToken, managementApiBaseUri);
 
 			return new CurrentUserService(managementApiClient, auth0ManagementApiAudience);
@@ -71,9 +71,9 @@ namespace Obsidian.API.Services
 				["grant_type"] = "client_credentials",
 				["client_id"] = managementApiClientId,
 				["client_secret"] = managementApiClientSecret,
-				["audience"] = $"{auth0Domain}api/v2/"
+				["audience"] = $"{auth0Domain}/api/v2/"
 			};
-			var tokenResponse = await httpClient.PostAsync($"{auth0Domain}oauth/token", new FormUrlEncodedContent(tokenRequest));
+			var tokenResponse = await httpClient.PostAsync($"{auth0Domain}/oauth/token", new FormUrlEncodedContent(tokenRequest));
 
 			if (!tokenResponse.IsSuccessStatusCode)
 			{
