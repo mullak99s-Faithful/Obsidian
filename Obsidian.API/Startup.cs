@@ -63,7 +63,8 @@ namespace Obsidian.API
 							AuthorizationUrl = new Uri($"{AuthConfig.Authority}/authorize?audience={AuthConfig.Audience}"),
 							Scopes = new Dictionary<string, string>
 							{
-								{ "openid", "OpenID" }
+								{ "openid", "OpenID" },
+								{ "profile", "Profile" }
 							}
 						}
 					}
@@ -75,16 +76,15 @@ namespace Obsidian.API
 		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
 			if (env.IsDevelopment())
-			{
 				app.UseDeveloperExceptionPage();
-				app.UseSwagger();
-				app.UseSwaggerUI(c =>
-				{
-					c.DefaultModelRendering(ModelRendering.Model);
-					c.SwaggerEndpoint("/swagger/v1/swagger.json", "Obsidian.API");
-					c.OAuthClientId(AuthConfig.ClientId);
-				});
-			}
+
+			app.UseSwagger();
+			app.UseSwaggerUI(c =>
+			{
+				c.DefaultModelRendering(ModelRendering.Model);
+				c.SwaggerEndpoint("/swagger/v1/swagger.json", "Obsidian.API");
+				c.OAuthClientId(AuthConfig.ClientId);
+			});
 
 			app.UseHttpsRedirection();
 			app.UseRouting();

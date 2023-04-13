@@ -13,12 +13,12 @@ namespace Obsidian.App.Controllers
 		}
 
 		public async Task<List<Guid>> GetAllMappingIds()
-			=> (await _apiService.GetAsync<IEnumerable<Guid>>("mapping/texturemap/getallids") ?? new List<Guid>()).ToList();
+			=> (await _apiService.GetAsync<IEnumerable<Guid>>("mapping/texturemap/getallids", true) ?? new List<Guid>()).ToList();
 
 		public async Task<string> GetMappingName(Guid id)
-			=> await _apiService.GetAsync<string>($"mapping/texturemap/getname/{id}") ?? string.Empty;
+			=> await _apiService.GetAsync<string>($"mapping/texturemap/getname/{id}", true) ?? string.Empty;
 
 		public async Task<TextureMapping> GetTextureMapping(Guid id)
-			=> await _apiService.GetAsync<TextureMapping>($"mapping/texturemap/get/{id}") ?? new TextureMapping();
+			=> await _apiService.GetAsync<TextureMapping>($"mapping/texturemap/get/{id}", true) ?? new TextureMapping();
 	}
 }

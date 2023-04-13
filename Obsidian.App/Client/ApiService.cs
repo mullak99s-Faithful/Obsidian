@@ -18,16 +18,18 @@ namespace Obsidian.App.Client
 			_endpoint = configuration["Endpoint"].TrimEnd('/');
 		}
 
-		public async Task<T?> GetAsync<T>(string url, int retryCount = 3, int delayMilliseconds = 100)
+		public async Task<T?> GetAsync<T>(string url, bool allowAnonymous = false, int retryCount = 3, int delayMilliseconds = 100)
 		{
 			var accessTokenResult = await _accessTokenProvider.RequestAccessToken();
 			var retry = 0;
 
 			while (retry < retryCount)
 			{
-				if (accessTokenResult.TryGetToken(out var accessToken))
+				AccessToken? accessToken = null;
+				if (allowAnonymous || accessTokenResult.TryGetToken(out accessToken))
 				{
-					_httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.Value);
+					if (!allowAnonymous && accessToken != null)
+						_httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.Value);
 
 					try
 					{

@@ -4,7 +4,7 @@ using Obsidian.App.Controllers;
 
 namespace Obsidian.App.Client
 {
-    public class Program
+	public class Program
 	{
 		public static async Task Main(string[] args)
 		{
@@ -24,6 +24,10 @@ namespace Obsidian.App.Client
 			{
 				builder.Configuration.Bind("Auth0", options.ProviderOptions);
 				options.ProviderOptions.ResponseType = "code";
+
+				options.ProviderOptions.DefaultScopes.Clear();
+				options.ProviderOptions.DefaultScopes.Add("openid");
+				options.ProviderOptions.DefaultScopes.Add("profile");
 			});
 
 			await builder.Build().RunAsync();
