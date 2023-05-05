@@ -120,8 +120,8 @@ namespace Obsidian.API.Controllers
 
 		[HttpPost("TextureMap/Delete/{mapGuid}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
-		[Authorize("write:rename-mapping")]
-		public async Task<IActionResult> RenameTextureMapping([FromRoute] Guid mapGuid)
+		[Authorize("write:delete-mapping")]
+		public async Task<IActionResult> DeleteTextureMapping([FromRoute] Guid mapGuid)
 		{
 			if (string.IsNullOrEmpty(mapGuid.ToString()))
 				return BadRequest("Please provide an id");

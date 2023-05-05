@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Obsidian.API.Logic;
+using Obsidian.API.Repository;
 using Obsidian.SDK.Models;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -12,21 +12,23 @@ namespace Obsidian.API.Controllers
 	[SwaggerResponse(500, "An unexpected error occurred")]
 	public class PackController : ControllerBase
 	{
-		private readonly IPackLogic _packLogic;
+		private readonly IPackRepository _packRepository;
+		private readonly ITextureMapRepository _textureMapRepository;
 		private readonly ILogger<PackController> _logger;
 
-		public PackController(IPackLogic packLogic, ILogger<PackController> logger)
+		public PackController(IPackRepository packRepository, ITextureMapRepository textureMapRepository, ILogger<PackController> logger)
 		{
-			_packLogic = packLogic;
+			_packRepository = packRepository;
+			_textureMapRepository = textureMapRepository;
 			_logger = logger;
 		}
 
 		[HttpGet("GetAll")]
 		[ProducesResponseType(typeof(IEnumerable<Pack>), 200)]
 		[SwaggerResponse(404, "No packs exist")]
-		public IActionResult GetPacks()
+		public async Task<IActionResult> GetPacks()
 		{
-			IEnumerable<Pack> packs = _packLogic.GetPacks();
+			IEnumerable<Pack> packs = await _packRepository.GetAllPacks();
 			if (!packs.Any())
 				return NotFound();
 			return Ok(packs);
@@ -35,9 +37,9 @@ namespace Obsidian.API.Controllers
 		[HttpGet("GetFromId/{id}")]
 		[ProducesResponseType(typeof(Pack), 200)]
 		[SwaggerResponse(404, "Pack does not exist")]
-		public IActionResult GetPack([FromRoute] Guid id)
+		public async Task<IActionResult> GetPack([FromRoute] Guid id)
 		{
-			Pack? pack = _packLogic.GetPack(id);
+			Pack? pack = await _packRepository.GetPackById(id);
 			if (pack == null)
 				return NotFound();
 			return Ok(pack);
@@ -46,9 +48,9 @@ namespace Obsidian.API.Controllers
 		[HttpGet("GetFromName/{name}")]
 		[ProducesResponseType(typeof(Pack), 200)]
 		[SwaggerResponse(404, "Pack does not exist")]
-		public IActionResult GetPack([FromRoute] string name)
+		public async Task<IActionResult> GetPack([FromRoute] string name)
 		{
-			Pack? pack = _packLogic.GetPack(name);
+			Pack? pack = await _packRepository.GetPackByName(name);
 			if (pack == null)
 				return NotFound();
 			return Ok(pack);
@@ -59,7 +61,10 @@ namespace Obsidian.API.Controllers
 		[Authorize("write:add-pack")]
 		public async Task<IActionResult> AddPack(string name, string description, Guid textureMappings)
 		{
-			bool success = await _packLogic.AddPack(name, description, textureMappings);
+			if (await _textureMapRepository.GetTextureMappingById(textureMappings) == null)
+				return NotFound("Invalid texture map!");
+
+			bool success = await _packRepository.AddPack(new Pack(name, description, textureMappings));
 			if (!success)
 				return BadRequest();
 			return Ok();
@@ -70,7 +75,13 @@ namespace Obsidian.API.Controllers
 		[Authorize("write:edit-pack")]
 		public async Task<IActionResult> EditPack([FromRoute] Guid id, string? name, string? description, Guid? textureMappings)
 		{
-			bool success = await _packLogic.EditPack(id, name, description, textureMappings);
+			if (textureMappings != null)
+			{
+				if (await _textureMapRepository.GetTextureMappingById(textureMappings.Value) == null)
+					return NotFound("Invalid texture map!");
+			}
+
+			bool success = await _packRepository.UpdatePackById(id, name, textureMappings, description);
 			if (!success)
 				return BadRequest();
 			return Ok();
@@ -81,7 +92,7 @@ namespace Obsidian.API.Controllers
 		[Authorize("write:delete-pack")]
 		public async Task<IActionResult> DeletePack([FromRoute] Guid id)
 		{
-			bool success = await _packLogic.DeletePack(id);
+			bool success = await _packRepository.DeleteById(id);
 			if (!success)
 				return BadRequest();
 			return Ok();
@@ -89,10 +100,10 @@ namespace Obsidian.API.Controllers
 
 		[HttpPost("Edit/PackPng")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
-		[Authorize("write:add-pack")]
+		[Authorize("write:edit-pack")]
 		public async Task<IActionResult> AddPackPNG(Guid id, IFormFile packPng)
 		{
-			bool success = await _packLogic.AddPackPng(id, packPng);
+			bool success = false; //await _packLogic.AddPackPng(id, packPng);
 			if (!success)
 				return BadRequest();
 			return Ok();

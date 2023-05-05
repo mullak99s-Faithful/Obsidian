@@ -38,8 +38,6 @@ namespace Obsidian.API
 
 			services.AddAuthenticationWithAuth0(AuthConfig);
 
-			//services.AddScoped<CurrentUserService>();
-			//services.AddScoped<IRoleValidator, CurrentUserService>();
 			var managementApiAudience = AuthConfig.Audience;
 			services.AddSingleton(managementApiAudience);
 
@@ -48,7 +46,7 @@ namespace Obsidian.API
 				return client;
 			});
 
-			services.AddSingleton<IMongoDatabase>(s => {
+			services.AddSingleton(s => {
 				var client = s.GetRequiredService<IMongoClient>();
 				var database = client.GetDatabase("Obsidian");
 				return database;
@@ -59,6 +57,7 @@ namespace Obsidian.API
 			services.AddSingleton<ITextureLogic, TextureLogic>();
 
 			services.AddScoped<ITextureMapRepository, TextureMapRepository>();
+			services.AddScoped<IPackRepository, PackRepository>();
 
 			BuildServiceProviderAsync(services).Wait();
 
@@ -105,7 +104,6 @@ namespace Obsidian.API
 			app.UseCors();
 			app.UseAuthentication();
 
-			//app.UseRoles(_currentUserService!.GetRoles());
 			app.UsePermissions(_currentUserService!.GetPermissions());
 
 			app.UseAuthorization();
@@ -128,7 +126,6 @@ namespace Obsidian.API
 				services.AddSingleton<IPermissionValidator>(_currentUserService);
 				services.AddSingleton<ICurrentUserService>(_currentUserService);
 
-				//services.AddRoleBasedAuthorizationWithRoles(_currentUserService.GetRolePolicies());
 				services.AddPermissionBasedAuthorizationWithPermissions(_currentUserService.GetPermissions());
 			}
 		}

@@ -103,32 +103,18 @@ namespace Obsidian.API.Services
 		{
 			return new List<string>()
 			{
-				"is-superuser",
+				"admin-action",
+				"read:user_idp_tokens",
+				"read:users",
 				"write:add-branch",
 				"write:add-mapping",
 				"write:add-pack",
+				"write:delete-mapping",
+				"write:delete-pack",
+				"write:edit-pack",
 				"write:generate-packs",
 				"write:import-pack",
 				"write:upload-texture"
-			};
-		}
-
-		public List<string> GetRoles()
-		{
-			return new List<string>()
-			{
-				"SuperUser",
-				"User"
-			};
-		}
-
-		public Dictionary<string, List<string>> GetRolePolicies()
-		{
-			return new Dictionary<string, List<string>>()
-			{
-				{"EveryRole", new List<string>(){ "SuperUser", "User" }},
-				{"SuperUser", new List<string>(){ "SuperUser" }},
-				{"User", new List<string>(){"User"}}
 			};
 		}
 	}

@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Obsidian.API.Services;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Security.Claims;
+using Obsidian.API.Services;
 
 namespace Obsidian.API.Controllers
 {
@@ -19,7 +20,7 @@ namespace Obsidian.API.Controllers
 		}
 
 		[HttpGet("admin")]
-		[Authorize("is-superuser")]
+		[Authorize("admin-action")]
 		public IActionResult AdminTest()
 		{
 			return Ok();
@@ -36,6 +37,20 @@ namespace Obsidian.API.Controllers
 		public IActionResult AnonTest()
 		{
 			return Ok();
+		}
+
+		[HttpGet("perms")]
+		[Authorize]
+		public IActionResult PermissionsTest()
+		{
+			using HttpClient client = new();
+			ClaimsIdentity? claimsIdentity = User.Identity as ClaimsIdentity;
+			Claim[]? permissionClaims = claimsIdentity?.FindAll("permissions").ToArray();
+			List<string> permissions = new();
+			if (permissionClaims != null && permissionClaims.Any())
+				permissions = permissionClaims.Select(c => c.Value).ToList();
+
+			return Ok(permissions);
 		}
 	}
 }
