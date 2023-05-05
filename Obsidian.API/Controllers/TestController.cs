@@ -21,20 +21,20 @@ namespace Obsidian.API.Controllers
 
 		[HttpGet("admin")]
 		[Authorize("admin-action")]
-		public IActionResult AdminTest()
+		public IActionResult AdminAuthTest()
 		{
 			return Ok();
 		}
 
 		[HttpGet("user")]
 		[Authorize]
-		public IActionResult UserTest()
+		public IActionResult UserAuthTest()
 		{
 			return Ok();
 		}
 
 		[HttpGet("anon")]
-		public IActionResult AnonTest()
+		public IActionResult AnonAuthTest()
 		{
 			return Ok();
 		}
