@@ -21,11 +21,11 @@ namespace Obsidian.API.Controllers
 			_logger = logger;
 		}
 
-		[HttpPost("Texture/Upload/{name}")]
+		[HttpPost("Texture/Upload/ByName/{name}")]
 		[Consumes("multipart/form-data")]
 		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
 		[ProducesResponseType(typeof(IActionResult), 200)]
-		[Authorize("write:import-pack")]
+		[Authorize("write:upload-texture")]
 		public async Task<IActionResult> UploadTexture([FromRoute] string name, [FromQuery] string packIds, IFormFile textureFile, IFormFile? mcMetaFile)
 		{
 			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
@@ -38,6 +38,25 @@ namespace Obsidian.API.Controllers
 				return BadRequest("Please provide pack ids");
 
 			return await _logic.AddTexture(name, packIdList, textureFile, mcMetaFile) ? Ok() : BadRequest("Invalid");
+		}
+
+		[HttpPost("Texture/Upload/ById/{assetId}")]
+		[Consumes("multipart/form-data")]
+		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:upload-texture")]
+		public async Task<IActionResult> UploadTexture([FromRoute] Guid assetId, [FromQuery] string packIds, IFormFile textureFile, IFormFile? mcMetaFile)
+		{
+			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
+
+			if (textureFile.Length == 0)
+				return BadRequest("Please select a file");
+			if (string.IsNullOrEmpty(assetId.ToString()))
+				return BadRequest("Please provide an id");
+			if (packIdList.Count == 0)
+				return BadRequest("Please provide pack ids");
+
+			return await _logic.AddTexture(assetId, packIdList, textureFile, mcMetaFile) ? Ok() : BadRequest("Invalid");
 		}
 
 		[HttpPost("Texture/ImportPack/{version}")]
@@ -73,9 +92,24 @@ namespace Obsidian.API.Controllers
 
 		[HttpGet("Texture/Search/{packId}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
-		public IActionResult TextureSearch([FromRoute] Guid packId, [FromQuery] string query)
+		public async Task<IActionResult> TextureSearch([FromRoute] Guid packId, [FromQuery] string query)
 		{
-			return Ok(_logic.SearchForTextures(packId, query));
+			return Ok(await _logic.SearchForTextures(packId, query));
+		}
+
+		[HttpGet("Texture/GetTexture/{packId}/{assetId}")]
+		[ProducesResponseType(typeof(FileContentResult), 200)]
+		public async Task<IActionResult> GetTexture([FromRoute] Guid packId, [FromRoute] Guid assetId)
+		{
+			(string FileName, byte[] Data) texture = await _logic.GetTexture(packId, assetId);
+			if (texture.Data.Length == 0)
+				return NotFound("Texture not found");
+
+			FileContentResult fileContentResult = new(texture.Data, "image/png")
+			{
+				FileDownloadName = texture.FileName
+			};
+			return fileContentResult;
 		}
 	}
 }

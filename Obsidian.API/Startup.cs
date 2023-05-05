@@ -52,12 +52,11 @@ namespace Obsidian.API
 				return database;
 			});
 
-			services.AddSingleton<IPackLogic, PackLogic>();
-			services.AddSingleton<IMappingLogic, MappingLogic>();
-			services.AddSingleton<ITextureLogic, TextureLogic>();
-
 			services.AddScoped<ITextureMapRepository, TextureMapRepository>();
 			services.AddScoped<IPackRepository, PackRepository>();
+			services.AddScoped<ITextureBucket, TextureBucket>();
+
+			services.AddScoped<ITextureLogic, TextureLogic>();
 
 			BuildServiceProviderAsync(services).Wait();
 
