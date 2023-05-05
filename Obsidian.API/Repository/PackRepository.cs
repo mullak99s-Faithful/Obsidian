@@ -1,5 +1,6 @@
 ﻿using MongoDB.Driver;
 using Obsidian.SDK.Models;
+using Pack = Obsidian.SDK.Models.Pack;
 
 namespace Obsidian.API.Repository
 {
@@ -118,6 +119,21 @@ namespace Obsidian.API.Repository
 			}
 		}
 
+		public async Task<bool> AddBranch(Guid id, PackBranch branch)
+		{
+			try
+			{
+				var filter = Builders<Pack>.Filter.Eq(p => p.Id, id);
+				var update = Builders<Pack>.Update.Push(p => p.Branches, branch);
+				var updated = await _collection.UpdateOneAsync(filter, update);
+				return updated.IsAcknowledged;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
+
 		public async Task<bool> DeleteById(Guid id)
 		{
 			try
@@ -131,10 +147,26 @@ namespace Obsidian.API.Repository
 				return false;
 			}
 		}
+
+		public async Task<bool> DeleteBranch(Guid packId, Guid branchId)
+		{
+			try
+			{
+				var filter = Builders<Pack>.Filter.Eq(p => p.Id, packId);
+				var update = Builders<Pack>.Update.PullFilter(p => p.Branches, b => b.Id == branchId);
+				var updated = await _collection.UpdateOneAsync(filter, update);
+				return updated.IsAcknowledged;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
 	}
 
 	public interface IPackRepository
 	{
+		// Create
 		Task<bool> AddPack(Pack pack);
 
 		// Read
@@ -146,8 +178,10 @@ namespace Obsidian.API.Repository
 
 		// Update
 		Task<bool> UpdatePackById(Guid id, string? newName, Guid? newTexMap, string? newDesc);
+		Task<bool> AddBranch(Guid id, PackBranch branch);
 
 		// Delete
 		Task<bool> DeleteById(Guid id);
+		Task<bool> DeleteBranch(Guid packId, Guid branchId);
 	}
 }

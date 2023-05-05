@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Obsidian.API.Logic;
+using Obsidian.API.Repository;
 using Obsidian.SDK.Enums;
 using Obsidian.SDK.Models;
 using Swashbuckle.AspNetCore.Annotations;
@@ -13,21 +13,21 @@ namespace Obsidian.API.Controllers
 	[SwaggerResponse(500, "An unexpected error occurred")]
 	public class BranchController : ControllerBase
 	{
-		private readonly IPackLogic _logic;
+		private readonly IPackRepository _packRepository;
 		private readonly ILogger<BranchController> _logger;
 
-		public BranchController(IPackLogic packLogic, ILogger<BranchController> logger)
+		public BranchController(IPackRepository packRepository, ILogger<BranchController> logger)
 		{
-			_logic = packLogic;
+			_packRepository = packRepository;
 			_logger = logger;
 		}
 
 		[HttpGet("GetForPackId/{id}")]
 		[ProducesResponseType(typeof(List<PackBranch>), 200)]
 		[SwaggerResponse(404, "Pack does not exist")]
-		public IActionResult GetBranchesForPackId([FromRoute] Guid id)
+		public async Task<IActionResult> GetBranchesForPackId([FromRoute] Guid id)
 		{
-			Pack? pack = _logic.GetPack(id);
+			Pack? pack = await _packRepository.GetPackById(id);
 
 			if (pack == null)
 				return NotFound("Pack not found");
@@ -39,9 +39,9 @@ namespace Obsidian.API.Controllers
 		[HttpGet("GetForPackName/{name}")]
 		[ProducesResponseType(typeof(List<PackBranch>), 200)]
 		[SwaggerResponse(404, "Pack does not exist")]
-		public IActionResult GetBranchesForPackId([FromRoute] string name)
+		public async Task<IActionResult> GetBranchesForPackName([FromRoute] string name)
 		{
-			Pack? pack = _logic.GetPack(name);
+			Pack? pack = await _packRepository.GetPackByName(name);
 
 			if (pack == null)
 				return NotFound("Pack not found");
@@ -55,23 +55,15 @@ namespace Obsidian.API.Controllers
 		[Authorize("write:add-branch")]
 		public async Task<IActionResult> AddBranch([FromRoute] Guid id, string branchName, MinecraftVersion version)
 		{
-			return await _logic.AddBranch(id, branchName, version) ? Ok() : BadRequest();
+			return await _packRepository.AddBranch(id, new PackBranch(branchName, version)) ? Ok() : BadRequest();
 		}
 
-		[HttpPost("Edit/{branchId}")]
-		[ProducesResponseType(typeof(IActionResult), 200)]
-		[Authorize("write:edit-branch")]
-		public async Task<IActionResult> DeleteBranch([FromRoute] Guid branchId, string? branchName, MinecraftVersion? version)
-		{
-			return await _logic.EditBranch(branchId, branchName, version) ? Ok() : BadRequest();
-		}
-
-		[HttpPost("Delete/{branchId}")]
+		[HttpPost("Delete/{packId}/{branchId}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:delete-branch")]
-		public async Task<IActionResult> DeleteBranch([FromRoute] Guid branchId)
+		public async Task<IActionResult> DeleteBranch([FromRoute] Guid packId, [FromRoute] Guid branchId)
 		{
-			return await _logic.DeleteBranch(branchId) ? Ok() : BadRequest();
+			return await _packRepository.DeleteBranch(packId, branchId) ? Ok() : BadRequest();
 		}
 	}
 }
