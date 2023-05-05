@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Cors.Infrastructure;
-using Microsoft.OpenApi.Models;
+﻿using Microsoft.OpenApi.Models;
+using MongoDB.Driver;
 using Obsidian.API.Abstractions;
 using Obsidian.API.Extensions;
 using Obsidian.API.Logic;
+using Obsidian.API.Repository;
 using Obsidian.API.Services;
 using Swashbuckle.AspNetCore.SwaggerUI;
 
@@ -42,9 +43,22 @@ namespace Obsidian.API
 			var managementApiAudience = AuthConfig.Audience;
 			services.AddSingleton(managementApiAudience);
 
+			services.AddSingleton<IMongoClient>(s => {
+				var client = new MongoClient(Configuration.GetConnectionString("MongoDb"));
+				return client;
+			});
+
+			services.AddSingleton<IMongoDatabase>(s => {
+				var client = s.GetRequiredService<IMongoClient>();
+				var database = client.GetDatabase("Obsidian");
+				return database;
+			});
+
 			services.AddSingleton<IPackLogic, PackLogic>();
 			services.AddSingleton<IMappingLogic, MappingLogic>();
 			services.AddSingleton<ITextureLogic, TextureLogic>();
+
+			services.AddScoped<ITextureMapRepository, TextureMapRepository>();
 
 			BuildServiceProviderAsync(services).Wait();
 
