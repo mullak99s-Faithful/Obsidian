@@ -1,9 +1,9 @@
 ﻿using MongoDB.Driver;
-using Obsidian.SDK.Models;
+using Obsidian.SDK.Models.Mappings;
 
 namespace Obsidian.API.Repository
 {
-	public class TextureMapRepository : ITextureMapRepository
+    public class TextureMapRepository : ITextureMapRepository
 	{
 		private readonly IMongoCollection<TextureMapping> _collection;
 

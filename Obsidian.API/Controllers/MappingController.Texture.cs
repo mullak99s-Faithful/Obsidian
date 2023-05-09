@@ -1,12 +1,13 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Obsidian.SDK.Models;
+using Obsidian.SDK.Models.Assets;
+using Obsidian.SDK.Models.Mappings;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Obsidian.API.Controllers
 {
-	public partial class MappingController
+    public partial class MappingController
 	{
 		[HttpGet("TextureMap/GetAll")]
 		[ProducesResponseType(typeof(IEnumerable<TextureMapping>), 200)]
@@ -67,10 +68,10 @@ namespace Obsidian.API.Controllers
 
 			using var streamReader = new StreamReader(file.OpenReadStream());
 			string json = await streamReader.ReadToEndAsync();
-			List<Asset>? map;
+			List<TextureAsset>? map;
 			try
 			{
-				map = JsonSerializer.Deserialize<List<Asset>>(json);
+				map = JsonSerializer.Deserialize<List<TextureAsset>>(json);
 			}
 			catch (Exception)
 			{

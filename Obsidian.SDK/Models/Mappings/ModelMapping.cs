@@ -1,4 +1,6 @@
-﻿namespace Obsidian.SDK.Models
+﻿using Obsidian.SDK.Models.Assets;
+
+namespace Obsidian.SDK.Models.Mappings
 {
 	public class ModelMapping
 	{

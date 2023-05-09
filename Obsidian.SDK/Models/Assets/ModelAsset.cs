@@ -1,7 +1,7 @@
 ﻿using Obsidian.SDK.Enums;
 using Obsidian.SDK.Models.Minecraft;
 
-namespace Obsidian.SDK.Models
+namespace Obsidian.SDK.Models.Assets
 {
 	public class ModelAsset
 	{
@@ -11,7 +11,7 @@ namespace Obsidian.SDK.Models
 		public string FileName { get; set; }
 		public BlockModel Model { get; set; }
 
-		public ModelAsset(BlockModel rawModel, List<string> names, string path, string fileName, List<Asset> textureAssets)
+		public ModelAsset(BlockModel rawModel, List<string> names, string path, string fileName, List<TextureAsset> textureAssets)
 		{
 			Id = Guid.NewGuid();
 			Names = names;
@@ -27,7 +27,7 @@ namespace Obsidian.SDK.Models
 		/// <param name="textureAssets">Texture mappings</param>
 		/// <returns>A BlockModel in Obsidian's format</returns>
 		/// <exception cref="ArgumentNullException">No matching asset in texture mappings</exception>
-		private BlockModel ConvertRawModelToModel(BlockModel rawModel, List<Asset> textureAssets)
+		private BlockModel ConvertRawModelToModel(BlockModel rawModel, List<TextureAsset> textureAssets)
 		{
 			Dictionary<string, string>? textures = rawModel.Textures;
 			if (textures != null && textures.Any())
@@ -81,7 +81,7 @@ namespace Obsidian.SDK.Models
 			return $"{parts[0].Replace("assets\\", "")}:{parts[1].Replace("\\", "/").Replace(".png", "")}";
 		}
 
-		public string Serialize(List<Asset> textureAssets, MinecraftVersion version)
+		public string Serialize(List<TextureAsset> textureAssets, MinecraftVersion version)
 		{
 			BlockModel model = Model;
 			if (model.Textures != null)

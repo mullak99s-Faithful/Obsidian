@@ -1,17 +1,18 @@
 ﻿using Obsidian.API.Repository;
 using Obsidian.SDK.Enums;
-using Obsidian.SDK.Models;
+using Obsidian.SDK.Models.Assets;
+using Obsidian.SDK.Models.Mappings;
 using Pack = Obsidian.SDK.Models.Pack;
 
 namespace Obsidian.API.Logic
 {
-	public interface ITextureLogic
+    public interface ITextureLogic
 	{
 		public Task<bool> AddTexture(string textureName, List<Guid> packIds, IFormFile textureFile, IFormFile? mcMetaFile);
 		public Task<bool> AddTexture(Guid assetId, List<Guid> packIds, IFormFile textureFile, IFormFile? mcMetaFile);
 		public bool ImportPack(MinecraftVersion version, List<Guid> packIds, IFormFile packFile, bool overwrite);
 		public bool GeneratePacks(List<Guid> packIds);
-		public Task<List<Asset>> SearchForTextures(Guid packId, string searchQuery);
+		public Task<List<TextureAsset>> SearchForTextures(Guid packId, string searchQuery);
 		public Task<(string, byte[])> GetTexture(Guid packId, Guid assetId);
 	}
 
@@ -28,7 +29,7 @@ namespace Obsidian.API.Logic
 			_textureBucket = textureBucket;
 		}
 
-		private async Task Upload(Pack pack, Asset asset, IFormFile textureFile, IFormFile? mcMetaFile)
+		private async Task Upload(Pack pack, TextureAsset asset, IFormFile textureFile, IFormFile? mcMetaFile)
 		{
 			if (textureFile is { Length: > 0 })
 			{
@@ -59,7 +60,7 @@ namespace Obsidian.API.Logic
 					continue;
 
 				TextureMapping? mapping = await _textureMapRepository.GetTextureMappingById(pack.TextureMappingsId);
-				Asset? texture = mapping?.Assets.First(x => x.Names.Contains(textureName.ToUpper()));
+				TextureAsset? texture = mapping?.Assets.First(x => x.Names.Contains(textureName.ToUpper()));
 				if (texture == null)
 					continue;
 
@@ -80,7 +81,7 @@ namespace Obsidian.API.Logic
 					continue;
 
 				TextureMapping? mapping = await _textureMapRepository.GetTextureMappingById(pack.TextureMappingsId);
-				Asset? texture = mapping?.Assets.First(x => x.Id == assetId);
+				TextureAsset? texture = mapping?.Assets.First(x => x.Id == assetId);
 				if (texture == null)
 					continue;
 
@@ -99,20 +100,20 @@ namespace Obsidian.API.Logic
 			throw new NotImplementedException();
 		}
 
-		public async Task<List<Asset>> SearchForTextures(Guid packId, string searchQuery)
+		public async Task<List<TextureAsset>> SearchForTextures(Guid packId, string searchQuery)
 		{
 			Pack? pack = await _packRepository.GetPackById(packId);
 			if (pack == null)
-				return new List<Asset>();
+				return new List<TextureAsset>();
 
 			TextureMapping? map = await _textureMapRepository.GetTextureMappingById(pack.TextureMappingsId);
 			if (map == null)
-				return new List<Asset>();
+				return new List<TextureAsset>();
 
-			Asset? exactMatch = map.Assets.Find(x => x.Names.Any(y => string.Equals(y, searchQuery.ToUpper().Trim(), StringComparison.Ordinal)));
+			TextureAsset? exactMatch = map.Assets.Find(x => x.Names.Any(y => string.Equals(y, searchQuery.ToUpper().Trim(), StringComparison.Ordinal)));
 
 			return exactMatch != null
-				? new List<Asset> { exactMatch }
+				? new List<TextureAsset> { exactMatch }
 				: map.Assets.FindAll(x => x.TexturePaths.Any(y => y.Path.Contains($"\\{searchQuery}")));
 		}
 
@@ -129,7 +130,7 @@ namespace Obsidian.API.Logic
 					TextureMapping? map = await _textureMapRepository.GetTextureMappingById(pack.TextureMappingsId);
 					if (map != null)
 					{
-						Asset? asset = map.Assets.Find(x => x.Id == assetId);
+						TextureAsset? asset = map.Assets.Find(x => x.Id == assetId);
 						texName = Path.GetFileName(asset?.TexturePaths.Last().Path) ?? $"{assetId}.png";
 					}
 				}

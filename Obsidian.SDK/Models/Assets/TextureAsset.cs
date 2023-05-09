@@ -1,6 +1,6 @@
-﻿namespace Obsidian.SDK.Models
+﻿namespace Obsidian.SDK.Models.Assets
 {
-	public class Asset
+	public class TextureAsset
 	{
 		public Guid Id { get; set; }
 		public List<string> Names { get; set; }

@@ -1,13 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Obsidian.SDK.Enums;
-using Obsidian.SDK.Models;
+using Obsidian.SDK.Models.Assets;
+using Obsidian.SDK.Models.Mappings;
 using Obsidian.SDK.Models.Minecraft;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Obsidian.API.Controllers
 {
-	public partial class MappingController
+    public partial class MappingController
 	{
 		[HttpPost("ModelMap/Individual/Import/{textureMappingId}")]
 		//[ProducesResponseType(typeof(IEnumerable<TextureMapping>), 200)]
