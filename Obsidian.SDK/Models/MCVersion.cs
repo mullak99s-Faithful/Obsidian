@@ -8,6 +8,11 @@ namespace Obsidian.SDK.Models
 		public MinecraftVersion MinVersion { get; set; }
 		public MinecraftVersion MaxVersion { get; set; }
 
+		/// <summary>
+		/// Check if a specific version matches this MCVersion
+		/// </summary>
+		/// <param name="version">Specified Minecraft Version</param>
+		/// <returns>If the version matches</returns>
 		public bool IsMatchingVersion(MinecraftVersion version)
 			=> version >= MinVersion && version <= MaxVersion;
 

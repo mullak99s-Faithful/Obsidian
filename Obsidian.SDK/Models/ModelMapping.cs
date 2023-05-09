@@ -4,6 +4,6 @@
 	{
 		public Guid Id { get; set; }
 		public string Name { get; set; }
-		//public List<Model> Models { get; set; }
+		public List<ModelAsset> Models { get; set; }
 	}
 }
