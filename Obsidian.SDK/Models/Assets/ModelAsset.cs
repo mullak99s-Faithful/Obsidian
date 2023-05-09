@@ -34,7 +34,7 @@ namespace Obsidian.SDK.Models.Assets
 			{
 				foreach (var texture in textures)
 				{
-					string texPath = ConvertModelTexPathToInternalPath(texture.Value);
+					string texPath = ConvertModelTexPathToInternalPath(texture.Value.ToLower());
 					try
 					{
 						// Replace the texture path with an Asset Id
@@ -89,11 +89,10 @@ namespace Obsidian.SDK.Models.Assets
 				foreach (var texture in model.Textures)
 				{
 					string texId = texture.Value;
-
 					Texture tex = textureAssets.First(x => x.Id == Guid.Parse(texId)).TexturePaths
 						.First(x => x.MCVersion.IsMatchingVersion(version));
 
-					model.Textures[texture.Key] = ConvertInternalPathToModelTexPath(tex.Path);
+					model.Textures[texture.Key] = ConvertInternalPathToModelTexPath(tex.Path.ToLower());
 				}
 			}
 			return model.Serialize();
