@@ -41,9 +41,11 @@ namespace Obsidian.API
 			var managementApiAudience = AuthConfig.Audience;
 			services.AddSingleton(managementApiAudience);
 
-			services.AddSingleton<IMongoClient>(s => {
-				var client = new MongoClient(Configuration.GetConnectionString("MongoDb"));
-				return client;
+			services.AddSingleton<IMongoClient>(s =>
+			{
+				MongoClientSettings? clientSettings = MongoClientSettings.FromConnectionString(Configuration.GetConnectionString("MongoDb"));
+				clientSettings.MaxConnectionPoolSize = 250;
+				return new MongoClient(clientSettings);
 			});
 
 			services.AddSingleton(s => {
@@ -53,10 +55,12 @@ namespace Obsidian.API
 			});
 
 			services.AddScoped<ITextureMapRepository, TextureMapRepository>();
+			services.AddScoped<IModelMapRepository, ModelMapRepository>();
 			services.AddScoped<IPackRepository, PackRepository>();
 			services.AddScoped<ITextureBucket, TextureBucket>();
 
 			services.AddScoped<ITextureLogic, TextureLogic>();
+			services.AddScoped<IPackLogic, PackLogic>();
 
 			BuildServiceProviderAsync(services).Wait();
 

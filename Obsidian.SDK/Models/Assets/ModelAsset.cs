@@ -20,6 +20,16 @@ namespace Obsidian.SDK.Models.Assets
 			Model = ConvertRawModelToModel(rawModel, textureAssets);
 		}
 
+		public void Update(BlockModel model)
+		{
+			Model = model;
+		}
+
+		public void Update(BlockModel rawModel, List<TextureAsset> textureAssets)
+		{
+			Model = ConvertRawModelToModel(rawModel, textureAssets);
+		}
+
 		/// <summary>
 		/// Convert the raw resourcepack block model into Obsidian's format (replaces texture paths with Asset Id's)
 		/// </summary>

@@ -6,16 +6,6 @@ using Pack = Obsidian.SDK.Models.Pack;
 
 namespace Obsidian.API.Logic
 {
-    public interface ITextureLogic
-	{
-		public Task<bool> AddTexture(string textureName, List<Guid> packIds, IFormFile textureFile, IFormFile? mcMetaFile);
-		public Task<bool> AddTexture(Guid assetId, List<Guid> packIds, IFormFile textureFile, IFormFile? mcMetaFile);
-		public bool ImportPack(MinecraftVersion version, List<Guid> packIds, IFormFile packFile, bool overwrite);
-		public bool GeneratePacks(List<Guid> packIds);
-		public Task<List<TextureAsset>> SearchForTextures(Guid packId, string searchQuery);
-		public Task<(string, byte[])> GetTexture(Guid packId, Guid assetId);
-	}
-
 	public class TextureLogic : ITextureLogic
 	{
 		private readonly ITextureMapRepository _textureMapRepository;
@@ -90,11 +80,6 @@ namespace Obsidian.API.Logic
 			return true;
 		}
 
-		public bool ImportPack(MinecraftVersion version, List<Guid> packIds, IFormFile packFile, bool overwrite)
-		{
-			throw new NotImplementedException();
-		}
-
 		public bool GeneratePacks(List<Guid> packIds)
 		{
 			throw new NotImplementedException();
@@ -137,5 +122,14 @@ namespace Obsidian.API.Logic
 			}
 			return (texName, texture);
 		}
+	}
+
+	public interface ITextureLogic
+	{
+		public Task<bool> AddTexture(string textureName, List<Guid> packIds, IFormFile textureFile, IFormFile? mcMetaFile);
+		public Task<bool> AddTexture(Guid assetId, List<Guid> packIds, IFormFile textureFile, IFormFile? mcMetaFile);
+		public bool GeneratePacks(List<Guid> packIds);
+		public Task<List<TextureAsset>> SearchForTextures(Guid packId, string searchQuery);
+		public Task<(string, byte[])> GetTexture(Guid packId, Guid assetId);
 	}
 }

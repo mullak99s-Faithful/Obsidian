@@ -59,37 +59,6 @@ namespace Obsidian.API.Controllers
 			return await _logic.AddTexture(assetId, packIdList, textureFile, mcMetaFile) ? Ok() : BadRequest("Invalid");
 		}
 
-		[HttpPost("Texture/ImportPack/{version}")]
-		[Consumes("multipart/form-data")]
-		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
-		[ProducesResponseType(typeof(IActionResult), 200)]
-		[Authorize("write:import-pack")]
-		public IActionResult ImportPack([FromRoute] MinecraftVersion version, [FromQuery] string packIds, [FromQuery] bool? overwrite, IFormFile pack)
-		{
-			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
-			overwrite ??= false;
-
-			if (pack.Length == 0)
-				return BadRequest("Please select a file");
-			if (packIdList.Count == 0)
-				return BadRequest("Please provide pack ids");
-
-			return _logic.ImportPack(version, packIdList, pack, overwrite.Value) ? Ok() : BadRequest("Invalid");
-
-		}
-
-		[HttpGet("Texture/GeneratePacks")]
-		[Authorize("write:generate-packs")]
-		[ProducesResponseType(typeof(IActionResult), 200)]
-		public IActionResult GenerateAllPacks([FromQuery] string packIds)
-		{
-			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
-			if (packIdList.Count == 0)
-				return BadRequest("Please provide pack ids");
-
-			return _logic.GeneratePacks(packIdList) ? Ok() : BadRequest("Invalid");
-		}
-
 		[HttpGet("Texture/Search/{packId}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		public async Task<IActionResult> TextureSearch([FromRoute] Guid packId, [FromQuery] string query)

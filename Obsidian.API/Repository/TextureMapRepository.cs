@@ -1,9 +1,10 @@
 ﻿using MongoDB.Driver;
+using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 
 namespace Obsidian.API.Repository
 {
-    public class TextureMapRepository : ITextureMapRepository
+	public class TextureMapRepository : ITextureMapRepository
 	{
 		private readonly IMongoCollection<TextureMapping> _collection;
 
@@ -105,6 +106,50 @@ namespace Obsidian.API.Repository
 				return false;
 			}
 		}
+
+		public async Task<bool> AddTexture(TextureAsset asset, Guid textureMapId)
+		{
+			var filter = Builders<TextureMapping>.Filter.Eq(t => t.Id, textureMapId);
+
+			var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
+			existingMap.Assets.Add(asset);
+
+			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
+			var updated = await _collection.UpdateOneAsync(filter, update);
+			return updated.IsAcknowledged;
+		}
+
+		public async Task<bool> EditTexture(TextureAsset asset, Guid modelId, Guid textureMapId)
+		{
+			var filter = Builders<TextureMapping>.Filter.Eq(t => t.Id, textureMapId);
+
+			var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
+			TextureAsset? existingTexture = existingMap.Assets.Find(x => x.Id == modelId);
+			if (existingTexture == null)
+				return false;
+
+			existingTexture.Update(asset);
+
+			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
+			var updated = await _collection.UpdateOneAsync(filter, update);
+			return updated.IsAcknowledged;
+		}
+
+		public async Task<bool> DeleteTexture(Guid modelId, Guid textureMapId)
+		{
+			var filter = Builders<TextureMapping>.Filter.Eq(t => t.Id, textureMapId);
+
+			var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
+			var assets = existingMap.Assets.Find(x => x.Id == modelId);
+			if (assets == null)
+				return false;
+
+			existingMap.Assets.Remove(assets);
+
+			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
+			var updated = await _collection.UpdateOneAsync(filter, update);
+			return updated.IsAcknowledged;
+		}
 		#endregion
 
 		#region Delete
@@ -138,6 +183,9 @@ namespace Obsidian.API.Repository
 
 		// Update
 		Task<bool> UpdateNameById(Guid id, string newName);
+		Task<bool> AddTexture(TextureAsset asset, Guid textureMapId);
+		Task<bool> EditTexture(TextureAsset asset, Guid modelId, Guid textureMapId);
+		Task<bool> DeleteTexture(Guid modelId, Guid textureMapId);
 
 		// Delete
 		Task<bool> DeleteById(Guid id);

@@ -12,11 +12,15 @@ namespace Obsidian.API.Repository
 			_bucket = new GridFSBucket(database);
 		}
 
-		public async Task<bool> UploadTexture(Guid packId, Guid textureId, byte[] texture)
+		public async Task<bool> UploadTexture(Guid packId, Guid textureId, byte[] texture, bool overwrite = false)
 		{
 			try
 			{
-				await DeleteTexture(packId, textureId); // Delete will check if it exists first
+				if (overwrite)
+					await DeleteTexture(packId, textureId);
+				else if (await DoesTextureExist(packId, textureId))
+					return false;
+
 				await _bucket.UploadFromBytesAsync($"{packId}_{textureId}.png", texture);
 				return true;
 			}
@@ -72,11 +76,15 @@ namespace Obsidian.API.Repository
 			}
 		}
 
-		public async Task<bool> UploadMCMeta(Guid packId, Guid textureId, byte[] mcMeta)
+		public async Task<bool> UploadMCMeta(Guid packId, Guid textureId, byte[] mcMeta, bool overwrite = false)
 		{
 			try
 			{
-				await DeleteMCMeta(packId, textureId); // Delete will check if it exists first
+				if (overwrite)
+					await DeleteMCMeta(packId, textureId);
+				else if (await DoesMCMetaExist(packId, textureId))
+					return false;
+
 				await _bucket.UploadFromBytesAsync($"{packId}_{textureId}.png.mcmeta", mcMeta);
 				return true;
 			}
@@ -135,12 +143,12 @@ namespace Obsidian.API.Repository
 
 	public interface ITextureBucket
 	{
-		Task<bool> UploadTexture(Guid packId, Guid textureId, byte[] texture);
+		Task<bool> UploadTexture(Guid packId, Guid textureId, byte[] texture, bool overwrite = false);
 		Task<byte[]?> DownloadTexture(Guid packId, Guid textureId);
 		Task<bool> DoesTextureExist(Guid packId, Guid textureId);
 		Task<bool> DeleteTexture(Guid packId, Guid textureId);
 
-		Task<bool> UploadMCMeta(Guid packId, Guid textureId, byte[] mcMeta);
+		Task<bool> UploadMCMeta(Guid packId, Guid textureId, byte[] mcMeta, bool overwrite = false);
 		Task<byte[]?> DownloadMCMeta(Guid packId, Guid textureId);
 		Task<bool> DoesMCMetaExist(Guid packId, Guid textureId);
 		Task<bool> DeleteMCMeta(Guid packId, Guid textureId);
