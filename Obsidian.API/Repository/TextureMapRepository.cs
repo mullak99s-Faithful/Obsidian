@@ -1,4 +1,5 @@
 ﻿using MongoDB.Driver;
+using Obsidian.API.Cache;
 using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 
@@ -7,10 +8,12 @@ namespace Obsidian.API.Repository
 	public class TextureMapRepository : ITextureMapRepository
 	{
 		private readonly IMongoCollection<TextureMapping> _collection;
+		private readonly ITextureMapCache _cache;
 
-		public TextureMapRepository(IMongoDatabase database)
+		public TextureMapRepository(IMongoDatabase database, ITextureMapCache cache)
 		{
 			_collection = database.GetCollection<TextureMapping>("TextureMapping");
+			_cache = cache;
 		}
 
 		#region Create
@@ -23,25 +26,18 @@ namespace Obsidian.API.Repository
 		{
 			try
 			{
+				if (_cache.TryGetValue(id, out TextureMapping textureMap))
+					return textureMap;
+
 				var filter = Builders<TextureMapping>.Filter.Eq(t => t.Id, id);
-				return await _collection.Find(filter).FirstOrDefaultAsync();
+				var result = await _collection.Find(filter).FirstOrDefaultAsync();
+
+				_cache.Set(id, result);
+				return result;
 			}
 			catch (Exception)
 			{
 				return null;
-			}
-		}
-
-		public async Task<List<TextureMapping>> GetTextureMappingsByName(string name)
-		{
-			try
-			{
-				var filter = Builders<TextureMapping>.Filter.Eq(t => t.Name, name);
-				return await _collection.Find(filter).ToListAsync();
-			}
-			catch (Exception)
-			{
-				return new List<TextureMapping>(0);
 			}
 		}
 
@@ -71,9 +67,28 @@ namespace Obsidian.API.Repository
 		{
 			try
 			{
-				var filter = Builders<TextureMapping>.Filter.Empty;
+				var ids = await GetAllTextureMappingIds();
+
+				List<TextureMapping> mappings = new();
+				foreach (var id in ids)
+				{
+					if (_cache.TryGetValue(id.Key, out TextureMapping textureMap))
+						mappings.Add(textureMap);
+				}
+
+				if (mappings.Count == ids.Count)
+					return mappings;
+
+				var missingIds = ids.Where(x => !mappings.Select(y => y.Id).Contains(x.Key)).Select(x => x.Key).ToList();
+
+				var filter = Builders<TextureMapping>.Filter.In(t => t.Id, missingIds);
 				var documents = await _collection.Find(filter).ToListAsync();
-				return documents;
+
+				foreach(var document in documents.Where(x => x != null))
+					_cache.Set(document.Id, document);
+
+				mappings.AddRange(documents);
+				return mappings;
 			}
 			catch (Exception)
 			{
@@ -99,6 +114,10 @@ namespace Obsidian.API.Repository
 				var filter = Builders<TextureMapping>.Filter.Eq(t => t.Id, id);
 				var update = Builders<TextureMapping>.Update.Set(t => t.Name, newName);
 				var updated = await _collection.UpdateOneAsync(filter, update);
+
+				if (updated.IsAcknowledged)
+					_cache.Remove(id);
+
 				return updated.IsAcknowledged;
 			}
 			catch (Exception)
@@ -116,6 +135,10 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
 			var updated = await _collection.UpdateOneAsync(filter, update);
+
+			if (updated.IsAcknowledged)
+				_cache.Remove(textureMapId);
+
 			return updated.IsAcknowledged;
 		}
 
@@ -132,6 +155,10 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
 			var updated = await _collection.UpdateOneAsync(filter, update);
+
+			if (updated.IsAcknowledged)
+				_cache.Remove(textureMapId);
+
 			return updated.IsAcknowledged;
 		}
 
@@ -148,6 +175,10 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
 			var updated = await _collection.UpdateOneAsync(filter, update);
+
+			if (updated.IsAcknowledged)
+				_cache.Remove(textureMapId);
+
 			return updated.IsAcknowledged;
 		}
 		#endregion
@@ -159,6 +190,10 @@ namespace Obsidian.API.Repository
 			{
 				var filter = Builders<TextureMapping>.Filter.Eq(t => t.Id, id);
 				var deleted = await _collection.DeleteOneAsync(filter);
+
+				if (deleted.IsAcknowledged)
+					_cache.Remove(id);
+
 				return deleted.IsAcknowledged;
 			}
 			catch (Exception)
@@ -176,7 +211,6 @@ namespace Obsidian.API.Repository
 
 		// Read
 		Task<TextureMapping?> GetTextureMappingById(Guid id);
-		Task<List<TextureMapping>> GetTextureMappingsByName(string name);
 		Task<Dictionary<Guid, string>> GetAllTextureMappingIds();
 		Task<List<TextureMapping>> GetAllTextureMappings();
 		Task<string> GetTextureMappingNameById(Guid id);

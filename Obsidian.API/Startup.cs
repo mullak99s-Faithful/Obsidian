@@ -1,6 +1,7 @@
 ﻿using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 using Obsidian.API.Abstractions;
+using Obsidian.API.Cache;
 using Obsidian.API.Extensions;
 using Obsidian.API.Logic;
 using Obsidian.API.Repository;
@@ -41,7 +42,7 @@ namespace Obsidian.API
 			var managementApiAudience = AuthConfig.Audience;
 			services.AddSingleton(managementApiAudience);
 
-			services.AddSingleton<IMongoClient>(s =>
+			services.AddSingleton<IMongoClient>(_ =>
 			{
 				MongoClientSettings? clientSettings = MongoClientSettings.FromConnectionString(Configuration.GetConnectionString("MongoDb"));
 				clientSettings.MaxConnectionPoolSize = 250;
@@ -54,11 +55,17 @@ namespace Obsidian.API
 				return database;
 			});
 
+			// Cache
+			services.AddSingleton<ITextureMapCache, TextureMapCache>();
+			services.AddSingleton<IModelMapCache, ModelMapCache>();
+
+			// Repos
 			services.AddScoped<ITextureMapRepository, TextureMapRepository>();
 			services.AddScoped<IModelMapRepository, ModelMapRepository>();
 			services.AddScoped<IPackRepository, PackRepository>();
 			services.AddScoped<ITextureBucket, TextureBucket>();
 
+			// Logic
 			services.AddScoped<ITextureLogic, TextureLogic>();
 			services.AddScoped<IPackLogic, PackLogic>();
 

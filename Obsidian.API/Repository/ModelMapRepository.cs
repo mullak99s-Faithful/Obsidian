@@ -1,4 +1,5 @@
 ﻿using MongoDB.Driver;
+using Obsidian.API.Cache;
 using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 using Obsidian.SDK.Models.Minecraft;
@@ -8,10 +9,12 @@ namespace Obsidian.API.Repository
     public class ModelMapRepository : IModelMapRepository
 	{
 		private readonly IMongoCollection<ModelMapping> _collection;
+		private readonly IModelMapCache _cache;
 
-		public ModelMapRepository(IMongoDatabase database)
+		public ModelMapRepository(IMongoDatabase database, IModelMapCache cache)
 		{
 			_collection = database.GetCollection<ModelMapping>("ModelMapping");
+			_cache = cache;
 		}
 
 		#region Create
