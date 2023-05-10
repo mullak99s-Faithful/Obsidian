@@ -9,15 +9,19 @@ namespace Obsidian.SDK.Models.Assets
 		public List<string> Names { get; set; }
 		public string Path { get; set; }
 		public string FileName { get; set; }
+		public string? BlockState { get; set; }
 		public BlockModel Model { get; set; }
+		public MCVersion MCVersion { get; set; }
 
-		public ModelAsset(BlockModel rawModel, List<string> names, string path, string fileName, List<TextureAsset> textureAssets)
+		public ModelAsset(BlockModel rawModel, MCVersion version, List<string> names, string path, string fileName, string? blockState, List<TextureAsset> textureAssets)
 		{
 			Id = Guid.NewGuid();
 			Names = names;
 			Path = path;
 			FileName = fileName;
+			BlockState = blockState;
 			Model = ConvertRawModelToModel(rawModel, textureAssets);
+			MCVersion = version;
 		}
 
 		public void Update(BlockModel model)

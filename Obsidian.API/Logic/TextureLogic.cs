@@ -11,12 +11,14 @@ namespace Obsidian.API.Logic
 		private readonly ITextureMapRepository _textureMapRepository;
 		private readonly IPackRepository _packRepository;
 		private readonly ITextureBucket _textureBucket;
+		private readonly IPackPngBucket _packPngBucket;
 
-		public TextureLogic(ITextureMapRepository textureMapRepository, IPackRepository packRepository, ITextureBucket textureBucket)
+		public TextureLogic(ITextureMapRepository textureMapRepository, IPackRepository packRepository, ITextureBucket textureBucket, IPackPngBucket packPngBucket)
 		{
 			_textureMapRepository = textureMapRepository;
 			_packRepository = packRepository;
 			_textureBucket = textureBucket;
+			_packPngBucket = packPngBucket;
 		}
 
 		private async Task Upload(Pack pack, TextureAsset asset, IFormFile textureFile, IFormFile? mcMetaFile)
@@ -80,11 +82,6 @@ namespace Obsidian.API.Logic
 			return true;
 		}
 
-		public bool GeneratePacks(List<Guid> packIds)
-		{
-			throw new NotImplementedException();
-		}
-
 		public async Task<List<TextureAsset>> SearchForTextures(Guid packId, string searchQuery)
 		{
 			Pack? pack = await _packRepository.GetPackById(packId);
@@ -126,10 +123,9 @@ namespace Obsidian.API.Logic
 
 	public interface ITextureLogic
 	{
-		public Task<bool> AddTexture(string textureName, List<Guid> packIds, IFormFile textureFile, IFormFile? mcMetaFile);
-		public Task<bool> AddTexture(Guid assetId, List<Guid> packIds, IFormFile textureFile, IFormFile? mcMetaFile);
-		public bool GeneratePacks(List<Guid> packIds);
-		public Task<List<TextureAsset>> SearchForTextures(Guid packId, string searchQuery);
-		public Task<(string, byte[])> GetTexture(Guid packId, Guid assetId);
+		Task<bool> AddTexture(string textureName, List<Guid> packIds, IFormFile textureFile, IFormFile? mcMetaFile);
+		Task<bool> AddTexture(Guid assetId, List<Guid> packIds, IFormFile textureFile, IFormFile? mcMetaFile);
+		Task<List<TextureAsset>> SearchForTextures(Guid packId, string searchQuery);
+		Task<(string, byte[])> GetTexture(Guid packId, Guid assetId);
 	}
 }

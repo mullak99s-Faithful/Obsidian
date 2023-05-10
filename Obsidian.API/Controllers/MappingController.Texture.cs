@@ -1,6 +1,6 @@
-﻿using System.Text.Json;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 using Swashbuckle.AspNetCore.Annotations;
@@ -39,7 +39,7 @@ namespace Obsidian.API.Controllers
 			if (string.IsNullOrWhiteSpace(id.ToString()))
 				return BadRequest("No id provided");
 
-			string? mapName = await _textureMapRepository.GetTextureMappingNameById(id);
+			string mapName = await _textureMapRepository.GetTextureMappingNameById(id);
 			if (string.IsNullOrWhiteSpace(mapName))
 				return NotFound();
 			return Ok(mapName);
@@ -71,7 +71,7 @@ namespace Obsidian.API.Controllers
 			List<TextureAsset>? map;
 			try
 			{
-				map = JsonSerializer.Deserialize<List<TextureAsset>>(json);
+				map = JsonConvert.DeserializeObject<List<TextureAsset>>(json);
 			}
 			catch (Exception)
 			{

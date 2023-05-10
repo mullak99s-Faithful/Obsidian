@@ -9,7 +9,12 @@ namespace Obsidian.API.Repository
 
 		public TextureBucket(IMongoDatabase database)
 		{
-			_bucket = new GridFSBucket(database);
+			_bucket = new GridFSBucket(database, new GridFSBucketOptions
+			{
+				BucketName = "Textures",
+				ChunkSizeBytes = 1024 * 1024,
+				WriteConcern = WriteConcern.WMajority
+			});
 		}
 
 		public async Task<bool> UploadTexture(Guid packId, Guid textureId, byte[] texture, bool overwrite = false)

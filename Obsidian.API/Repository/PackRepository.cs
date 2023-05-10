@@ -93,7 +93,7 @@ namespace Obsidian.API.Repository
 			return document["Name"].AsString;
 		}
 
-		public async Task<bool> UpdatePackById(Guid id, string? newName, Guid? newTexMap, string? newDesc)
+		public async Task<bool> UpdatePackById(Guid id, string? newName, Guid? newTexMap, Guid? newModelMap, string? newDesc)
 		{
 			try
 			{
@@ -105,6 +105,9 @@ namespace Obsidian.API.Repository
 
 				if (newTexMap.HasValue)
 					updateDefinitions.Add(Builders<Pack>.Update.Set(p => p.TextureMappingsId, newTexMap.Value));
+
+				if (newModelMap.HasValue)
+					updateDefinitions.Add(Builders<Pack>.Update.Set(p => p.ModelMappingsId, newModelMap.Value));
 
 				if (!string.IsNullOrWhiteSpace(newDesc))
 					updateDefinitions.Add(Builders<Pack>.Update.Set(p => p.Description, newDesc));
@@ -177,7 +180,7 @@ namespace Obsidian.API.Repository
 		Task<string> GetPackNameById(Guid id);
 
 		// Update
-		Task<bool> UpdatePackById(Guid id, string? newName, Guid? newTexMap, string? newDesc);
+		Task<bool> UpdatePackById(Guid id, string? newName, Guid? newTexMap, Guid? newModelMap, string? newDesc);
 		Task<bool> AddBranch(Guid id, PackBranch branch);
 
 		// Delete

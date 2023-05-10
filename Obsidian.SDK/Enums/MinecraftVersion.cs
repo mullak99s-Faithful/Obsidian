@@ -39,6 +39,8 @@ namespace Obsidian.SDK.Enums
 		[Description("1.19.3")]
 		MC1193 = 20,
 		[Description("1.19.4")]
-		MC1194 = 21
+		MC1194 = 21,
+		[Description("Future")]
+		ALL_FUTURE = int.MaxValue
 	}
 }

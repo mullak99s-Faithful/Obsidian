@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Obsidian.API.Logic;
 using Obsidian.API.Repository;
 using Obsidian.SDK.Models;
 using Swashbuckle.AspNetCore.Annotations;
@@ -14,12 +15,16 @@ namespace Obsidian.API.Controllers
 	{
 		private readonly IPackRepository _packRepository;
 		private readonly ITextureMapRepository _textureMapRepository;
+		private readonly IModelMapRepository _modelMapRepository;
+		private readonly IPackPngLogic _packPngLogic;
 		private readonly ILogger<PackController> _logger;
 
-		public PackController(IPackRepository packRepository, ITextureMapRepository textureMapRepository, ILogger<PackController> logger)
+		public PackController(IPackRepository packRepository, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IPackPngLogic packPngLogic, ILogger<PackController> logger)
 		{
 			_packRepository = packRepository;
 			_textureMapRepository = textureMapRepository;
+			_modelMapRepository = modelMapRepository;
+			_packPngLogic = packPngLogic;
 			_logger = logger;
 		}
 
@@ -59,12 +64,15 @@ namespace Obsidian.API.Controllers
 		[HttpPost("Add")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:add-pack")]
-		public async Task<IActionResult> AddPack(string name, string description, Guid textureMappings)
+		public async Task<IActionResult> AddPack(string name, string description, Guid textureMappingId, Guid? modelMappingId)
 		{
-			if (await _textureMapRepository.GetTextureMappingById(textureMappings) == null)
+			if (await _textureMapRepository.GetTextureMappingById(textureMappingId) == null)
 				return NotFound("Invalid texture map!");
 
-			bool success = await _packRepository.AddPack(new Pack(name, description, textureMappings));
+			if (modelMappingId != null && await _modelMapRepository.GetModelMappingById(modelMappingId.Value) == null)
+				return NotFound("Invalid model map!");
+
+			bool success = await _packRepository.AddPack(new Pack(name, description, textureMappingId, modelMappingId));
 			if (!success)
 				return BadRequest();
 			return Ok();
@@ -73,15 +81,21 @@ namespace Obsidian.API.Controllers
 		[HttpPost("Edit/{id}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:edit-pack")]
-		public async Task<IActionResult> EditPack([FromRoute] Guid id, string? name, string? description, Guid? textureMappings)
+		public async Task<IActionResult> EditPack([FromRoute] Guid id, string? name, string? description, Guid? textureMappingId, Guid? modelMappingId)
 		{
-			if (textureMappings != null)
+			if (textureMappingId != null)
 			{
-				if (await _textureMapRepository.GetTextureMappingById(textureMappings.Value) == null)
+				if (await _textureMapRepository.GetTextureMappingById(textureMappingId.Value) == null)
 					return NotFound("Invalid texture map!");
 			}
 
-			bool success = await _packRepository.UpdatePackById(id, name, textureMappings, description);
+			if (modelMappingId != null)
+			{
+				if (await _modelMapRepository.GetModelMappingById(modelMappingId.Value) == null)
+					return NotFound("Invalid model map!");
+			}
+
+			bool success = await _packRepository.UpdatePackById(id, name, textureMappingId, modelMappingId, description);
 			if (!success)
 				return BadRequest();
 			return Ok();
@@ -98,12 +112,23 @@ namespace Obsidian.API.Controllers
 			return Ok();
 		}
 
-		[HttpPost("Edit/PackPng")]
+		[HttpPost("PackPng/Add")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:edit-pack")]
-		public async Task<IActionResult> AddPackPNG(Guid id, IFormFile packPng)
+		public async Task<IActionResult> AddPackPNG(Guid packId, IFormFile packPng, bool overwrite = false)
 		{
-			bool success = false; //await _packLogic.AddPackPng(id, packPng);
+			bool success = await _packPngLogic.UploadPackPng(packId, packPng, overwrite);
+			if (!success)
+				return BadRequest();
+			return Ok();
+		}
+
+		[HttpPost("PackPng/Delete")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:edit-pack")]
+		public async Task<IActionResult> DeletePackPNG(Guid packId)
+		{
+			bool success = await _packPngLogic.DeletePackPng(packId);
 			if (!success)
 				return BadRequest();
 			return Ok();

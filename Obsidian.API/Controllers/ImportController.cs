@@ -26,7 +26,7 @@ namespace Obsidian.API.Controllers
 		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:import-pack")]
-		public IActionResult ImportPack([FromRoute] MinecraftVersion version, [FromQuery] string packIds, [FromQuery] bool? overwrite, IFormFile pack)
+		public async Task<IActionResult> ImportPack([FromRoute] MinecraftVersion version, [FromQuery] string packIds, [FromQuery] bool? overwrite, IFormFile pack)
 		{
 			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
 			overwrite ??= false;
@@ -36,7 +36,7 @@ namespace Obsidian.API.Controllers
 			if (packIdList.Count == 0)
 				return BadRequest("Please provide pack ids");
 
-			_packLogic.ImportPack(version, packIdList, pack, overwrite.Value);
+			await _packLogic.ImportPack(version, packIdList, pack, overwrite.Value);
 			return Ok();
 		}
 
