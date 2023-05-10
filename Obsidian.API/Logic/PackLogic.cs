@@ -111,6 +111,10 @@ namespace Obsidian.API.Logic
 			// ModelMapping can be null. Simply means no custom models exist for the pack.
 
 			string destinationPackPath = GetPackDestinationPath(pack);
+
+			// Delete ZIPs
+			Parallel.ForEach(Directory.GetFiles(destinationPackPath, "*.zip"), File.Delete);
+
 			foreach (var branch in pack.Branches)
 			{
 				// TODO: Not running in parallel to avoid MongoDB limits. Cache maybe?
