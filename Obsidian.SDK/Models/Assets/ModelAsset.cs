@@ -6,20 +6,18 @@ namespace Obsidian.SDK.Models.Assets
 	public class ModelAsset
 	{
 		public Guid Id { get; set; }
-		public List<string> Names { get; set; }
+		public string Name { get; set; }
 		public string Path { get; set; }
 		public string FileName { get; set; }
-		public string? BlockState { get; set; }
 		public BlockModel Model { get; set; }
 		public MCVersion MCVersion { get; set; }
 
-		public ModelAsset(BlockModel rawModel, MCVersion version, List<string> names, string path, string fileName, string? blockState, List<TextureAsset> textureAssets)
+		public ModelAsset(BlockModel rawModel, MCVersion version, string name, string path, string fileName, List<TextureAsset> textureAssets)
 		{
 			Id = Guid.NewGuid();
-			Names = names;
+			Name = name;
 			Path = path;
 			FileName = fileName;
-			BlockState = blockState;
 			Model = ConvertRawModelToModel(rawModel, textureAssets);
 			MCVersion = version;
 		}
@@ -48,6 +46,9 @@ namespace Obsidian.SDK.Models.Assets
 			{
 				foreach (var texture in textures)
 				{
+					if (texture.Value.StartsWith('#'))
+						continue; // Skip non-texture paths
+
 					string texPath = ConvertModelTexPathToInternalPath(texture.Value.ToLower());
 					try
 					{
@@ -103,8 +104,24 @@ namespace Obsidian.SDK.Models.Assets
 				foreach (var texture in model.Textures)
 				{
 					string texId = texture.Value;
-					Texture tex = textureAssets.First(x => x.Id == Guid.Parse(texId)).TexturePaths
-						.First(x => x.MCVersion.IsMatchingVersion(version));
+
+					if (!Guid.TryParse(texId, out Guid texGuid))
+						continue; // Skip non-GUID texture paths
+
+					TextureAsset? asset = textureAssets.FirstOrDefault(x => x.Id == texGuid);
+					if (asset == null)
+					{
+						Console.WriteLine($"Model Serialize: Null asset! TexId = {texId}");
+						continue;
+					}
+
+
+					Texture? tex = asset.TexturePaths.FirstOrDefault(x => x.MCVersion.IsMatchingVersion(version));
+					if (tex == null)
+					{
+						Console.WriteLine($"Model Serialize: Null texture! Asset = {asset.Names.First()}, TexId = {texId}");
+						continue;
+					}
 
 					model.Textures[texture.Key] = ConvertInternalPathToModelTexPath(tex.Path.ToLower());
 				}

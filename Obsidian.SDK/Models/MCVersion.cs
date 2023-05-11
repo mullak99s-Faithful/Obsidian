@@ -8,6 +8,15 @@ namespace Obsidian.SDK.Models
 		public MinecraftVersion MinVersion { get; set; }
 		public MinecraftVersion MaxVersion { get; set; }
 
+		public MCVersion(MinecraftVersion minVersion, MinecraftVersion maxVersion)
+		{
+			MinVersion = minVersion;
+			MaxVersion = maxVersion;
+		}
+
+		public MCVersion()
+		{ }
+
 		/// <summary>
 		/// Check if a specific version matches this MCVersion
 		/// </summary>
@@ -15,6 +24,9 @@ namespace Obsidian.SDK.Models
 		/// <returns>If the version matches</returns>
 		public bool IsMatchingVersion(MinecraftVersion version)
 			=> version >= MinVersion && version <= MaxVersion;
+
+		public bool DoesOverlap(MCVersion version)
+			=> IsMatchingVersion(version.MinVersion) || IsMatchingVersion(version.MaxVersion);
 
 		public override string ToString()
 		{

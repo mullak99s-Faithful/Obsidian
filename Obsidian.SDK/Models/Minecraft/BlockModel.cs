@@ -7,6 +7,9 @@ namespace Obsidian.SDK.Models.Minecraft
 		[JsonProperty("credit")]
 		public string Credit { get; set; }
 
+		[JsonProperty("ambientocclusion")]
+		public bool AmbientOcclusion { get; set; }
+
 		[JsonProperty("parent")]
 		public string Parent { get; set; }
 
@@ -15,6 +18,12 @@ namespace Obsidian.SDK.Models.Minecraft
 
 		[JsonProperty("elements")]
 		public List<Element> Elements { get; set; }
+
+		[JsonProperty("gui_light")]
+		public string GuiLight { get; set; }
+
+		[JsonProperty("display")]
+		public Dictionary<string, GuiDisplay> Display { get; set; }
 
 		public class Element
 		{
@@ -68,6 +77,18 @@ namespace Obsidian.SDK.Models.Minecraft
 
 			[JsonProperty("tintindex")]
 			public int? TintIndex { get; set; }
+		}
+
+		public class GuiDisplay
+		{
+			[JsonProperty("rotation")]
+			public List<float> Rotation { get; set; }
+
+			[JsonProperty("translation")]
+			public List<float> Translation { get; set; }
+
+			[JsonProperty("scale")]
+			public List<float> Scale { get; set; }
 		}
 
 		public string Serialize()

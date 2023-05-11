@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Obsidian.API.Logic;
-using Obsidian.SDK.Enums;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Obsidian.API.Controllers
@@ -21,7 +20,7 @@ namespace Obsidian.API.Controllers
 			_logger = logger;
 		}
 
-		[HttpPost("Texture/Upload/ByName/{name}")]
+		[HttpPost("Upload/ByName/{name}")]
 		[Consumes("multipart/form-data")]
 		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
 		[ProducesResponseType(typeof(IActionResult), 200)]
@@ -40,7 +39,7 @@ namespace Obsidian.API.Controllers
 			return await _logic.AddTexture(name, packIdList, textureFile, mcMetaFile) ? Ok() : BadRequest("Invalid");
 		}
 
-		[HttpPost("Texture/Upload/ById/{assetId}")]
+		[HttpPost("Upload/ById/{assetId}")]
 		[Consumes("multipart/form-data")]
 		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
 		[ProducesResponseType(typeof(IActionResult), 200)]
@@ -59,14 +58,14 @@ namespace Obsidian.API.Controllers
 			return await _logic.AddTexture(assetId, packIdList, textureFile, mcMetaFile) ? Ok() : BadRequest("Invalid");
 		}
 
-		[HttpGet("Texture/Search/{packId}")]
+		[HttpGet("Search/{packId}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		public async Task<IActionResult> TextureSearch([FromRoute] Guid packId, [FromQuery] string query)
 		{
 			return Ok(await _logic.SearchForTextures(packId, query));
 		}
 
-		[HttpGet("Texture/GetTexture/{packId}/{assetId}")]
+		[HttpGet("Get/{packId}/{assetId}")]
 		[ProducesResponseType(typeof(FileContentResult), 200)]
 		public async Task<IActionResult> GetTexture([FromRoute] Guid packId, [FromRoute] Guid assetId)
 		{

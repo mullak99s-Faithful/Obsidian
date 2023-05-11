@@ -1,15 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using Obsidian.SDK.Enums;
-using Obsidian.SDK.Models;
 using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
-using Obsidian.SDK.Models.Minecraft;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace Obsidian.API.Controllers
 {
-    public partial class MappingController
+	public partial class MappingController
 	{
 		[HttpPost("ModelMap/Add/{name}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
@@ -65,51 +63,51 @@ namespace Obsidian.API.Controllers
 			return Ok();
 		}
 
-		[HttpPost("ModelMap/Asset/Import")]
-		[ProducesResponseType(typeof(IActionResult), 200)]
-		//[Authorize("write:edit-mapping")]
-		public async Task<IActionResult> ImportModel(Guid textureMappingId, Guid modelMappingId, string path, string? blockState, IFormFile? file, MinecraftVersion minVersion, MinecraftVersion maxVersion = MinecraftVersion.ALL_FUTURE)
+		[HttpGet("ModelMap/GetAll")]
+		[ProducesResponseType(typeof(IEnumerable<ModelMapping>), 200)]
+		[SwaggerResponse(404, "No model mappings exist")]
+		public async Task<IActionResult> GetModelMappings()
 		{
-			if (file == null || file.Length == 0)
-				return BadRequest("No file specified");
+			IEnumerable<ModelMapping> maps = await _modelMapRepository.GetAllModelMappings();
+			if (!maps.Any())
+				return NotFound();
+			return Ok(maps);
+		}
 
-			TextureMapping? textureMapping = await _textureMapRepository.GetTextureMappingById(textureMappingId);
-			if (textureMapping == null)
-				return BadRequest("Invalid texture map specified");
+		[HttpGet("ModelMap/GetAllIds")]
+		[ProducesResponseType(typeof(Dictionary<Guid, string>), 200)]
+		[SwaggerResponse(404, "No model mappings exist")]
+		public async Task<IActionResult> GetModelMappingIds()
+		{
+			Dictionary<Guid, string> maps = await _modelMapRepository.GetAllModelMappingIds();
+			if (!maps.Any())
+				return NotFound();
+			return Ok(maps);
+		}
 
-			ModelMapping? modelMapping = await _modelMapRepository.GetModelMappingById(modelMappingId);
-			if (modelMapping == null)
-				return BadRequest("Invalid model map specified");
+		[HttpGet("ModelMap/GetName/{id}")]
+		[ProducesResponseType(typeof(string), 200)]
+		[SwaggerResponse(404, "No model mappings exist")]
+		public async Task<IActionResult> GetModelMappingName([FromRoute] Guid id)
+		{
+			if (string.IsNullOrWhiteSpace(id.ToString()))
+				return BadRequest("No id provided");
 
-			using var streamReader = new StreamReader(file.OpenReadStream());
-			var fileContent = await streamReader.ReadToEndAsync();
+			string mapName = await _modelMapRepository.GetModelMappingNameById(id);
+			if (string.IsNullOrWhiteSpace(mapName))
+				return NotFound();
+			return Ok(mapName);
+		}
 
-			BlockModel? blockModel = JsonConvert.DeserializeObject<BlockModel>(fileContent);
-			if (blockModel == null)
-				return BadRequest("Invalid model!");
-
-			string fileName = file.FileName;
-			List<string> ModelNames = new()
-			{
-				fileName.ToUpper().Replace(".JSON", "")
-			};
-
-			MCVersion version = new()
-			{
-				MinVersion = minVersion,
-				MaxVersion = maxVersion
-			};
-
-			// Create Model Asset for imported block model
-			// This will automatically convert texture paths to their equivalent GUID
-			ModelAsset asset = new(blockModel, version, ModelNames, path, fileName, blockState?.Trim(), textureMapping.Assets);
-
-			// Add model mapping
-			await _modelMapRepository.AddModel(asset, modelMappingId);
-
-			// Test converting the internal asset into a valid MC model
-			// This will automatically convert GUIDs to valid texture paths for the specified version
-			return Ok(asset.Serialize(textureMapping.Assets, MinecraftVersion.MC1194));
+		[HttpGet("ModelMap/Get/{id}")]
+		[ProducesResponseType(typeof(ModelMapping), 200)]
+		[SwaggerResponse(404, "Model mapping does not exist")]
+		public async Task<IActionResult> GetModelMapping([FromRoute] Guid id)
+		{
+			ModelMapping? map = await _modelMapRepository.GetModelMappingById(id);
+			if (map == null)
+				return NotFound();
+			return Ok(map);
 		}
 	}
 }

@@ -1,8 +1,13 @@
-﻿using MongoDB.Driver;
+﻿using MongoDB.Bson.Serialization;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using Obsidian.API.Cache;
+using Obsidian.SDK.Enums;
+using Obsidian.SDK.Models;
 using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 using Obsidian.SDK.Models.Minecraft;
+using System.Xml.Linq;
 
 namespace Obsidian.API.Repository
 {
@@ -85,6 +90,45 @@ namespace Obsidian.API.Repository
 			}
 		}
 
+		public async Task<List<ModelAsset>> GetAllModelAssetsForVersion(MinecraftVersion version)
+		{
+			var filter = Builders<ModelMapping>.Filter.ElemMatch(x => x.Models, m => m.MCVersion.IsMatchingVersion(version));
+			var projection = Builders<ModelMapping>.Projection.Include(x => x.Models);
+			var cursor = await _collection.FindAsync(filter, new FindOptions<ModelMapping, BsonDocument> { Projection = projection });
+
+			var models = new List<ModelAsset>();
+			while (await cursor.MoveNextAsync())
+			{
+				var documents = cursor.Current;
+				foreach (var document in documents)
+				{
+					var mappedModels = BsonSerializer.Deserialize<ModelMapping>(document).Models;
+					models.AddRange(mappedModels.Where(m => m.MCVersion.IsMatchingVersion(version)));
+				}
+			}
+			return models;
+		}
+
+		public async Task<ModelAsset?> GetModelAsset(Guid modelAssetId)
+		{
+			var filter = Builders<ModelMapping>.Filter.ElemMatch(x => x.Models, m => m.Id == modelAssetId);
+			var projection = Builders<ModelMapping>.Projection.Include(x => x.Models);
+
+			var cursor = await _collection.FindAsync(filter, new FindOptions<ModelMapping, BsonDocument> { Projection = projection });
+			var result = await cursor.FirstOrDefaultAsync();
+
+			if (result == null)
+			{
+				return null;
+			}
+
+			var model = result["Models"].AsBsonArray
+				.Select(x => BsonSerializer.Deserialize<ModelAsset>(x.AsBsonDocument))
+				.FirstOrDefault(x => x.Id == modelAssetId);
+
+			return model;
+		}
+
 		public async Task<string> GetModelMappingNameById(Guid id)
 		{
 			var filter = Builders<ModelMapping>.Filter.Eq(t => t.Id, id);
@@ -92,6 +136,21 @@ namespace Obsidian.API.Repository
 
 			var document = await _collection.Find(filter).Project(projection).FirstOrDefaultAsync();
 			return document["Name"].AsString;
+		}
+		public async Task<bool> DoesModelExist(ModelAsset model, Guid modelMapId)
+		{
+			try
+			{
+				var filter = Builders<ModelMapping>.Filter.Eq(t => t.Id, modelMapId);
+
+				var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
+				ModelAsset? existingModel = existingMap.Models.Find(x => (x.Id == model.Id || x.Name == model.Name || x.FileName == model.FileName) && x.MCVersion.DoesOverlap(model.MCVersion));
+				return existingModel != null;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
 		}
 		#endregion
 
@@ -184,7 +243,10 @@ namespace Obsidian.API.Repository
 		Task<List<ModelMapping>> GetModelMappingsByName(string name);
 		Task<Dictionary<Guid, string>> GetAllModelMappingIds();
 		Task<List<ModelMapping>> GetAllModelMappings();
+		Task<List<ModelAsset>> GetAllModelAssetsForVersion(MinecraftVersion version);
+		Task<ModelAsset?> GetModelAsset(Guid modelAssetId);
 		Task<string> GetModelMappingNameById(Guid id);
+		Task<bool> DoesModelExist(ModelAsset model, Guid modelMapId);
 
 		// Update
 		Task<bool> UpdateNameById(Guid id, string newName);

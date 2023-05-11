@@ -62,15 +62,17 @@ namespace Obsidian.API
 			// Repos
 			services.AddScoped<ITextureMapRepository, TextureMapRepository>();
 			services.AddScoped<IModelMapRepository, ModelMapRepository>();
+			services.AddScoped<IBlockStateMapRepository, BlockStateMapRepository>();
 			services.AddScoped<IPackRepository, PackRepository>();
 
 			// Buckets
 			services.AddScoped<ITextureBucket, TextureBucket>();
 			services.AddScoped<IPackPngBucket, PackPngBucket>();
-			services.AddScoped<IBlockstateBucket, BlockstateBucket>();
 
 			// Logic
 			services.AddScoped<ITextureLogic, TextureLogic>();
+			services.AddScoped<IModelLogic, ModelLogic>();
+			services.AddScoped<IBlockStateLogic, BlockStateLogic>();
 			services.AddScoped<IPackLogic, PackLogic>();
 			services.AddScoped<IPackPngLogic, PackPngLogic>();
 

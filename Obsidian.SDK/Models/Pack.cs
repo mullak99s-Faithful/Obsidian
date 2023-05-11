@@ -9,15 +9,17 @@ namespace Obsidian.SDK.Models
 		public List<PackBranch> Branches { get; set; } = new();
 		public Guid TextureMappingsId { get; set; }
 		public Guid? ModelMappingsId { get; set; }
+		public Guid? BlockStateMappingsId { get; set; }
 		public string Description { get; set; }
 
-		public Pack(string name, string description, Guid textureMappingsId, Guid? modelMappingsId) : this()
+		public Pack(string name, string description, Guid textureMappingsId, Guid? modelMappingsId, Guid? blockStateMappingsId) : this()
 		{
 			Id = Guid.NewGuid();
 			Name = name;
 			Description = description;
 			TextureMappingsId = textureMappingsId;
 			ModelMappingsId = modelMappingsId;
+			BlockStateMappingsId = blockStateMappingsId;
 		}
 
 		public Pack()

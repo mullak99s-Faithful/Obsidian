@@ -12,12 +12,14 @@ namespace Obsidian.API.Controllers
 	{
 		private readonly ITextureMapRepository _textureMapRepository;
 		private readonly IModelMapRepository _modelMapRepository;
+		private readonly IBlockStateMapRepository _blockStateMapRepository;
 		private readonly ILogger<MappingController> _logger;
 
-		public MappingController(ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, ILogger<MappingController> logger)
+		public MappingController(ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, ILogger<MappingController> logger)
 		{
 			_textureMapRepository = textureMapRepository;
 			_modelMapRepository = modelMapRepository;
+			_blockStateMapRepository = blockStateMapRepository;
 			_logger = logger;
 		}
 	}

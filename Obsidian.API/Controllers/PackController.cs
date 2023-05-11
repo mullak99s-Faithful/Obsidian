@@ -16,14 +16,16 @@ namespace Obsidian.API.Controllers
 		private readonly IPackRepository _packRepository;
 		private readonly ITextureMapRepository _textureMapRepository;
 		private readonly IModelMapRepository _modelMapRepository;
+		private readonly IBlockStateMapRepository _blockStateMapRepository;
 		private readonly IPackPngLogic _packPngLogic;
 		private readonly ILogger<PackController> _logger;
 
-		public PackController(IPackRepository packRepository, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IPackPngLogic packPngLogic, ILogger<PackController> logger)
+		public PackController(IPackRepository packRepository, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackPngLogic packPngLogic, ILogger<PackController> logger)
 		{
 			_packRepository = packRepository;
 			_textureMapRepository = textureMapRepository;
 			_modelMapRepository = modelMapRepository;
+			_blockStateMapRepository = blockStateMapRepository;
 			_packPngLogic = packPngLogic;
 			_logger = logger;
 		}
@@ -64,7 +66,7 @@ namespace Obsidian.API.Controllers
 		[HttpPost("Add")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:add-pack")]
-		public async Task<IActionResult> AddPack(string name, string description, Guid textureMappingId, Guid? modelMappingId)
+		public async Task<IActionResult> AddPack(string name, string description, Guid textureMappingId, Guid? modelMappingId, Guid? blockStateMappingId)
 		{
 			if (await _textureMapRepository.GetTextureMappingById(textureMappingId) == null)
 				return NotFound("Invalid texture map!");
@@ -72,7 +74,10 @@ namespace Obsidian.API.Controllers
 			if (modelMappingId != null && await _modelMapRepository.GetModelMappingById(modelMappingId.Value) == null)
 				return NotFound("Invalid model map!");
 
-			bool success = await _packRepository.AddPack(new Pack(name, description, textureMappingId, modelMappingId));
+			if (blockStateMappingId != null && await _blockStateMapRepository.GetBlockStateMappingById(blockStateMappingId.Value) == null)
+				return NotFound("Invalid model map!");
+
+			bool success = await _packRepository.AddPack(new Pack(name, description, textureMappingId, modelMappingId, blockStateMappingId));
 			if (!success)
 				return BadRequest();
 			return Ok();
@@ -81,7 +86,7 @@ namespace Obsidian.API.Controllers
 		[HttpPost("Edit/{id}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:edit-pack")]
-		public async Task<IActionResult> EditPack([FromRoute] Guid id, string? name, string? description, Guid? textureMappingId, Guid? modelMappingId)
+		public async Task<IActionResult> EditPack([FromRoute] Guid id, string? name, string? description, Guid? textureMappingId, Guid? modelMappingId, Guid? blockStateMappingId)
 		{
 			if (textureMappingId != null)
 			{
@@ -95,7 +100,13 @@ namespace Obsidian.API.Controllers
 					return NotFound("Invalid model map!");
 			}
 
-			bool success = await _packRepository.UpdatePackById(id, name, textureMappingId, modelMappingId, description);
+			if (blockStateMappingId != null)
+			{
+				if (await _blockStateMapRepository.GetBlockStateMappingById(blockStateMappingId.Value) == null)
+					return NotFound("Invalid block state map!");
+			}
+
+			bool success = await _packRepository.UpdatePackById(id, name, textureMappingId, modelMappingId, blockStateMappingId, description);
 			if (!success)
 				return BadRequest();
 			return Ok();

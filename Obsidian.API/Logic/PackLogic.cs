@@ -4,7 +4,9 @@ using Obsidian.SDK.Models;
 using Obsidian.SDK.Models.Mappings;
 using System.IO.Compression;
 using System.Text;
+using Newtonsoft.Json;
 using Obsidian.SDK.Models.Assets;
+using Obsidian.SDK.Models.Minecraft;
 using Pack = Obsidian.SDK.Models.Pack;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -17,15 +19,17 @@ namespace Obsidian.API.Logic
 
 		private readonly ITextureMapRepository _textureMapRepository;
 		private readonly IModelMapRepository _modelMapRepository;
+		private readonly IBlockStateMapRepository _blockStateMapRepository;
 		private readonly IPackRepository _packRepository;
 		private readonly ITextureBucket _textureBucket;
 
-		public PackLogic(ITextureLogic texLogic, IPackPngLogic packPngLogic, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IPackRepository packRepository, ITextureBucket textureBucket)
+		public PackLogic(ITextureLogic texLogic, IPackPngLogic packPngLogic, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackRepository packRepository, ITextureBucket textureBucket)
 		{
 			_texLogic = texLogic;
 			_packPngLogic = packPngLogic;
 			_textureMapRepository = textureMapRepository;
 			_modelMapRepository = modelMapRepository;
+			_blockStateMapRepository = blockStateMapRepository;
 			_packRepository = packRepository;
 			_textureBucket = textureBucket;
 		}
@@ -110,6 +114,11 @@ namespace Obsidian.API.Logic
 				: null;
 			// ModelMapping can be null. Simply means no custom models exist for the pack.
 
+			BlockStateMapping? blockStateMapping = pack.BlockStateMappingsId != null
+				? await _blockStateMapRepository.GetBlockStateMappingById(pack.BlockStateMappingsId.Value)
+				: null;
+			// BlockStateMapping can be null. Simply means no custom blockstates exist for the pack.
+
 			string destinationPackPath = GetPackDestinationPath(pack);
 
 			// Delete ZIPs
@@ -118,12 +127,12 @@ namespace Obsidian.API.Logic
 			foreach (var branch in pack.Branches)
 			{
 				// TODO: Not running in parallel to avoid MongoDB limits. Cache maybe?
-				await GenerateBranch(destinationPackPath, pack, branch, textureMapping, modelMapping);
+				await GenerateBranch(destinationPackPath, pack, branch, textureMapping, modelMapping, blockStateMapping);
 			}
 			Console.WriteLine($"Finished generating pack {pack.Name}!");
 		}
 
-		private async Task GenerateBranch(string packPath, Pack pack, PackBranch branch, TextureMapping textureMapping, ModelMapping? modelMapping)
+		private async Task GenerateBranch(string packPath, Pack pack, PackBranch branch, TextureMapping textureMapping, ModelMapping? modelMapping, BlockStateMapping? blockStateMapping)
 		{
 			string dest = Path.Combine(packPath, branch.Name.Replace(" ", "_"));
 			Directory.CreateDirectory(dest);
@@ -143,7 +152,16 @@ namespace Obsidian.API.Logic
 				if (modelMapping != null)
 				{
 					foreach (var asset in modelMapping.Models.Where(x => x.MCVersion.IsMatchingVersion(branch.Version)))
-						await AddModel(pack, branch, asset, dest);
+						await AddModel(branch, textureMapping, asset, dest);
+				}
+			});
+
+			Task blockStateTask = Task.Run(async () =>
+			{
+				if (blockStateMapping != null)
+				{
+					foreach (var asset in blockStateMapping.Models.Where(x => x.MCVersion.IsMatchingVersion(branch.Version)))
+						await AddBlockState(asset, dest);
 				}
 			});
 
@@ -151,7 +169,7 @@ namespace Obsidian.API.Logic
 			Task packPngTask = AddPackPng(pack.Id, dest);
 
 			// These can be ran simultaneously since it won't exceed connections
-			await Task.WhenAll(textureAssetTask, modelAssetTask, packMcMetaTask, packPngTask);
+			await Task.WhenAll(textureAssetTask, modelAssetTask, blockStateTask, packMcMetaTask, packPngTask);
 
 			// TODO: Allow changing this at some point. Temporary name atm for testing.
 			string zipPath = Path.Combine(packPath, $"{pack.Name}-{branch.Name}-Obsidian.zip");
@@ -195,10 +213,30 @@ namespace Obsidian.API.Logic
 			}
 		}
 
-		private async Task AddModel(Pack pack, PackBranch branch, ModelAsset asset, string destination)
+		private async Task AddModel(PackBranch branch, TextureMapping textureMapping, ModelAsset asset, string destination)
 		{
-			// TODO
-			await Task.CompletedTask;
+			string modelJson = asset.Serialize(textureMapping.Assets, branch.Version);
+
+			if (!string.IsNullOrWhiteSpace(modelJson))
+			{
+				string dirPath = Path.Combine(destination, "assets", "minecraft", "models", asset.Path);
+				Directory.CreateDirectory(dirPath);
+
+				string filePath = Path.Combine(dirPath, asset.FileName);
+				await File.WriteAllTextAsync(filePath, modelJson, Encoding.UTF8);
+			}
+		}
+
+		private async Task AddBlockState(BlockState blockState, string destination)
+		{
+			if (blockState.Data.Length > 0)
+			{
+				string dirPath = Path.Combine(destination, "assets", "minecraft", "blockstates");
+				Directory.CreateDirectory(dirPath);
+
+				string filePath = Path.Combine(dirPath, blockState.FileName);
+				await File.WriteAllBytesAsync(filePath, blockState.Data);
+			}
 		}
 
 		private string GetPackDestinationPath(Pack pack)
