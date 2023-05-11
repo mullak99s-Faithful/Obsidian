@@ -116,7 +116,10 @@ namespace Obsidian.SDK.Models.Assets
 					}
 
 
-					Texture? tex = asset.TexturePaths.FirstOrDefault(x => x.MCVersion.IsMatchingVersion(version));
+					// Matching version & ideally not an entity path
+					Texture? tex = asset.TexturePaths.FirstOrDefault(x => x.MCVersion.IsMatchingVersion(version) && !x.Path.Replace("\\", "/").Contains("entity/")) ??
+					               asset.TexturePaths.FirstOrDefault(x => x.MCVersion.IsMatchingVersion(version));
+
 					if (tex == null)
 					{
 						Console.WriteLine($"Model Serialize: Null texture! Asset = {asset.Names.First()}, TexId = {texId}");
