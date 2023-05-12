@@ -4,3 +4,4 @@
 - Automatically schedule pack builds (generated packs) and upload them to git
 - Specify a manual build, include a changelog
 - Automatic credits generation (add credits on texture upload)
+- Add Optifine textures to Texture Mappings
