@@ -82,7 +82,7 @@ namespace Obsidian.API.Controllers
 
 		[HttpPost("Clear/{textureMappingId}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
-		[Authorize("write:upload-texture")]
+		[Authorize("write:delete-texture")]
 		public async Task<IActionResult> ClearAllTextures([FromRoute] Guid textureMappingId)
 		{
 			if (string.IsNullOrWhiteSpace(textureMappingId.ToString()))

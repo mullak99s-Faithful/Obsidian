@@ -27,7 +27,7 @@ namespace Obsidian.API.Controllers
 		[Consumes("multipart/form-data")]
 		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
 		[ProducesResponseType(typeof(IActionResult), 200)]
-		[Authorize("write:upload-texture")]
+		[Authorize("write:upload-blockstate")]
 		public async Task<IActionResult> UploadBlockState([FromRoute] string blockStateName, [FromQuery] string packIds, IFormFile blockStateFile, MinecraftVersion minVersion, MinecraftVersion maxVersion)
 		{
 			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
@@ -50,7 +50,7 @@ namespace Obsidian.API.Controllers
 		[Consumes("multipart/form-data")]
 		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
 		[ProducesResponseType(typeof(IActionResult), 200)]
-		[Authorize("write:upload-texture")]
+		[Authorize("write:upload-blockstate")]
 		public async Task<IActionResult> Import([FromQuery] string packIds, string? nameSuffix, IFormFile zipFile, MinecraftVersion minVersion, MinecraftVersion maxVersion)
 		{
 			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
@@ -114,7 +114,7 @@ namespace Obsidian.API.Controllers
 
 		[HttpPost("Clear/{blockStateMappingId}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
-		[Authorize("write:upload-texture")]
+		[Authorize("write:delete-blockstate")]
 		public async Task<IActionResult> ClearAllBlockStates([FromRoute] Guid blockStateMappingId)
 		{
 			if (string.IsNullOrWhiteSpace(blockStateMappingId.ToString()))

@@ -114,7 +114,12 @@ namespace Obsidian.API.Services
 				"write:edit-pack",
 				"write:generate-packs",
 				"write:import-pack",
-				"write:upload-texture"
+				"write:upload-texture",
+				"write:delete-texture",
+				"write:upload-model",
+				"write:delete-model",
+				"write:upload-blockstate",
+				"write:delete-blockstate"
 			};
 		}
 	}

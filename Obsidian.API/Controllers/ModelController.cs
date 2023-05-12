@@ -29,7 +29,7 @@ namespace Obsidian.API.Controllers
 		[Consumes("multipart/form-data")]
 		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
 		[ProducesResponseType(typeof(IActionResult), 200)]
-		[Authorize("write:upload-texture")]
+		[Authorize("write:upload-model")]
 		public async Task<IActionResult> UploadModel([FromRoute] string modelName, [FromQuery] string packIds, string path, IFormFile modelFile, MinecraftVersion minVersion, MinecraftVersion maxVersion)
 		{
 			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
@@ -56,7 +56,7 @@ namespace Obsidian.API.Controllers
 		[Consumes("multipart/form-data")]
 		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
 		[ProducesResponseType(typeof(IActionResult), 200)]
-		[Authorize("write:upload-texture")]
+		[Authorize("write:upload-model")]
 		public async Task<IActionResult> Import([FromQuery] string packIds, string? nameSuffix, IFormFile zipFile, MinecraftVersion minVersion, MinecraftVersion maxVersion, bool overwrite = false)
 		{
 			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
@@ -131,7 +131,7 @@ namespace Obsidian.API.Controllers
 
 		[HttpPost("Clear/{modelMappingId}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
-		[Authorize("write:upload-texture")]
+		[Authorize("write:delete-model")]
 		public async Task<IActionResult> ClearAllModels([FromRoute] Guid modelMappingId)
 		{
 			if (string.IsNullOrWhiteSpace(modelMappingId.ToString()))
