@@ -5,7 +5,7 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace Obsidian.API.Controllers
 {
-    public partial class MappingController
+	public partial class MappingController
 	{
 		[HttpPost("BlockStateMap/Add/Blank/{name}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]

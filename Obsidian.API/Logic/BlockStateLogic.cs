@@ -92,6 +92,9 @@ namespace Obsidian.API.Logic
 			BlockState? blockState = map?.Models.FirstOrDefault(x => x.FileName == name.ToUpper() && x.MCVersion.IsMatchingVersion(version));
 			return blockState;
 		}
+
+		public async Task<bool> DeleteAllBlockStates(Guid mappingId)
+			=> await _blockStateMapRepository.ClearBlockStates(mappingId);
 	}
 
 	public interface IBlockStateLogic
@@ -99,5 +102,6 @@ namespace Obsidian.API.Logic
 		Task<bool> AddBlockState(string blockStateName, List<Guid> packIds, string fileName, byte[] blockStateFile, MinecraftVersion minVersion, MinecraftVersion maxVersion);
 		Task<List<BlockState>> SearchForBlockStates(Guid packId, string searchQuery);
 		Task<BlockState?> GetBlockState(Guid packId, string name, MinecraftVersion version);
+		Task<bool> DeleteAllBlockStates(Guid mappingId);
 	}
 }

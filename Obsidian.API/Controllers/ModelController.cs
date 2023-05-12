@@ -1,15 +1,12 @@
-﻿using System.IO;
-using System.IO.Compression;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json;
 using Obsidian.API.Logic;
 using Obsidian.SDK.Enums;
-using Obsidian.SDK.Models;
 using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Minecraft;
 using Swashbuckle.AspNetCore.Annotations;
+using System.IO.Compression;
 
 namespace Obsidian.API.Controllers
 {
@@ -55,13 +52,12 @@ namespace Obsidian.API.Controllers
 			return success ? Ok() : BadRequest("Invalid");
 		}
 
-
 		[HttpPost("Import/FromZip")]
 		[Consumes("multipart/form-data")]
 		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:upload-texture")]
-		public async Task<IActionResult> Import([FromQuery] string packIds, string? nameSuffix, IFormFile zipFile, MinecraftVersion minVersion, MinecraftVersion maxVersion)
+		public async Task<IActionResult> Import([FromQuery] string packIds, string? nameSuffix, IFormFile zipFile, MinecraftVersion minVersion, MinecraftVersion maxVersion, bool overwrite = false)
 		{
 			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
 
@@ -81,6 +77,17 @@ namespace Obsidian.API.Controllers
 						string path = Path.GetDirectoryName(entry.FullName) ?? string.Empty;
 
 						string modelName = $"{fileName.ToLower().Replace(".json", "")}";
+
+						List<string> ignoreDirs = new()
+						{
+							"block", "item"
+						};
+
+						// Include directory name to avoid multiple uses of files like "0.json" causing issues
+						string parentDir = path?.Split('\\', '/').LastOrDefault()?.Trim() ?? string.Empty;
+						if (!string.IsNullOrWhiteSpace(parentDir) && !ignoreDirs.Contains(parentDir))
+							modelName = $"{parentDir}_{modelName}";
+
 						if (!string.IsNullOrWhiteSpace(nameSuffix))
 							modelName = $"{modelName}-{nameSuffix}";
 
@@ -120,6 +127,18 @@ namespace Obsidian.API.Controllers
 				return NotFound("Model not found");
 
 			return Ok(modelAsset.Model);
+		}
+
+		[HttpPost("Clear/{modelMappingId}")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:upload-texture")]
+		public async Task<IActionResult> ClearAllModels([FromRoute] Guid modelMappingId)
+		{
+			if (string.IsNullOrWhiteSpace(modelMappingId.ToString()))
+				return BadRequest("Please provide an id");
+
+			bool success = await _logic.DeleteAllModels(modelMappingId);
+			return success ? Ok() : BadRequest("Invalid");
 		}
 	}
 }

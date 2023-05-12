@@ -1,17 +1,15 @@
-﻿using MongoDB.Bson.Serialization;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using Obsidian.API.Cache;
 using Obsidian.SDK.Enums;
-using Obsidian.SDK.Models;
 using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 using Obsidian.SDK.Models.Minecraft;
-using System.Xml.Linq;
 
 namespace Obsidian.API.Repository
 {
-    public class ModelMapRepository : IModelMapRepository
+	public class ModelMapRepository : IModelMapRepository
 	{
 		private readonly IMongoCollection<ModelMapping> _collection;
 		private readonly IModelMapCache _cache;
@@ -144,12 +142,28 @@ namespace Obsidian.API.Repository
 				var filter = Builders<ModelMapping>.Filter.Eq(t => t.Id, modelMapId);
 
 				var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
-				ModelAsset? existingModel = existingMap.Models.Find(x => (x.Id == model.Id || x.Name == model.Name || x.FileName == model.FileName) && x.MCVersion.DoesOverlap(model.MCVersion));
+				ModelAsset? existingModel = existingMap.Models.Find(x => (x.Id == model.Id || x.Name == model.Name) && x.MCVersion.DoesOverlap(model.MCVersion));
 				return existingModel != null;
 			}
 			catch (Exception)
 			{
 				return false;
+			}
+		}
+
+		public async Task<ModelAsset?> GetExistingModel(ModelAsset model, Guid modelMapId)
+		{
+			try
+			{
+				var filter = Builders<ModelMapping>.Filter.Eq(t => t.Id, modelMapId);
+
+				var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
+				ModelAsset? existingModel = existingMap.Models.Find(x => (x.Id == model.Id || x.Name == model.Name) && x.MCVersion.DoesOverlap(model.MCVersion));
+				return existingModel;
+			}
+			catch (Exception)
+			{
+				return null;
 			}
 		}
 		#endregion
@@ -175,6 +189,7 @@ namespace Obsidian.API.Repository
 			var filter = Builders<ModelMapping>.Filter.Eq(t => t.Id, modelMapId);
 
 			var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
+
 			existingMap.Models.Add(asset);
 
 			var update = Builders<ModelMapping>.Update.Set(t => t.Models, existingMap.Models);
@@ -214,6 +229,31 @@ namespace Obsidian.API.Repository
 			return updated.IsAcknowledged;
 		}
 
+		public async Task<bool> ClearModels(Guid modelMapId)
+		{
+			var filter = Builders<ModelMapping>.Filter.Eq(t => t.Id, modelMapId);
+
+			var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
+
+			existingMap.Models = new();
+
+			var update = Builders<ModelMapping>.Update.Set(t => t.Models, existingMap.Models);
+			var updated = await _collection.UpdateOneAsync(filter, update);
+			return updated.IsAcknowledged;
+		}
+
+		public async Task<bool> ReplaceModels(Guid modelMapId, List<ModelAsset> modelAssets)
+		{
+			var filter = Builders<ModelMapping>.Filter.Eq(t => t.Id, modelMapId);
+
+			var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
+
+			existingMap.Models = modelAssets;
+
+			var update = Builders<ModelMapping>.Update.Set(t => t.Models, existingMap.Models);
+			var updated = await _collection.UpdateOneAsync(filter, update);
+			return updated.IsAcknowledged;
+		}
 		#endregion
 
 		#region Delete
@@ -247,12 +287,15 @@ namespace Obsidian.API.Repository
 		Task<ModelAsset?> GetModelAsset(Guid modelAssetId);
 		Task<string> GetModelMappingNameById(Guid id);
 		Task<bool> DoesModelExist(ModelAsset model, Guid modelMapId);
+		Task<ModelAsset?> GetExistingModel(ModelAsset model, Guid modelMapId);
 
 		// Update
 		Task<bool> UpdateNameById(Guid id, string newName);
 		Task<bool> AddModel(ModelAsset asset, Guid modelMapId);
 		Task<bool> EditModel(BlockModel asset, Guid modelId, Guid modelMapId);
 		Task<bool> DeleteModel(Guid modelId, Guid modelMapId);
+		Task<bool> ClearModels(Guid modelMapId);
+		Task<bool> ReplaceModels(Guid modelMapId, List<ModelAsset> modelAssets);
 
 		// Delete
 		Task<bool> DeleteById(Guid id);

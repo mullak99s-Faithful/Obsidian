@@ -181,6 +181,32 @@ namespace Obsidian.API.Repository
 
 			return updated.IsAcknowledged;
 		}
+
+		public async Task<bool> ClearAssets(Guid textureMapId)
+		{
+			var filter = Builders<TextureMapping>.Filter.Eq(t => t.Id, textureMapId);
+
+			var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
+
+			existingMap.Assets = new();
+
+			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
+			var updated = await _collection.UpdateOneAsync(filter, update);
+			return updated.IsAcknowledged;
+		}
+
+		public async Task<bool> ReplaceAssets(Guid textureMapId, List<TextureAsset> textureAssets)
+		{
+			var filter = Builders<TextureMapping>.Filter.Eq(t => t.Id, textureMapId);
+
+			var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
+
+			existingMap.Assets = textureAssets;
+
+			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
+			var updated = await _collection.UpdateOneAsync(filter, update);
+			return updated.IsAcknowledged;
+		}
 		#endregion
 
 		#region Delete
@@ -220,6 +246,8 @@ namespace Obsidian.API.Repository
 		Task<bool> AddTexture(TextureAsset asset, Guid textureMapId);
 		Task<bool> EditTexture(TextureAsset asset, Guid modelId, Guid textureMapId);
 		Task<bool> DeleteTexture(Guid modelId, Guid textureMapId);
+		Task<bool> ClearAssets(Guid textureMapId);
+		Task<bool> ReplaceAssets(Guid textureMapId, List<TextureAsset> textureAssets);
 
 		// Delete
 		Task<bool> DeleteById(Guid id);

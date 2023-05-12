@@ -1,5 +1,4 @@
 ﻿using Obsidian.API.Repository;
-using Obsidian.SDK.Enums;
 using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 using Pack = Obsidian.SDK.Models.Pack;
@@ -119,6 +118,30 @@ namespace Obsidian.API.Logic
 			}
 			return (texName, texture);
 		}
+
+		public async Task<bool> DeleteAllTextures(Guid mappingId)
+		{
+			TextureMapping? map = await _textureMapRepository.GetTextureMappingById(mappingId);
+			if (map == null)
+				return false;
+
+			List<Pack> packs = (await _packRepository.GetAllPacks()).Where(x => x.TextureMappingsId == mappingId).ToList();
+			if (packs.Count == 0)
+				return false;
+
+			foreach (var asset in map.Assets)
+			{
+				foreach (var pack in packs)
+				{
+					List<Task> texTasks = new() { _textureBucket.DeleteTexture(pack.Id, asset.Id) };
+					if (await _textureBucket.DoesMCMetaExist(pack.Id, asset.Id))
+						texTasks.Add(_textureBucket.DeleteMCMeta(pack.Id, asset.Id));
+
+					await Task.WhenAll(texTasks); // 1-2 Tasks. Can be done without overloading connections
+				}
+			}
+			return await _textureMapRepository.ClearAssets(mappingId);
+		}
 	}
 
 	public interface ITextureLogic
@@ -127,5 +150,6 @@ namespace Obsidian.API.Logic
 		Task<bool> AddTexture(Guid assetId, List<Guid> packIds, IFormFile textureFile, IFormFile? mcMetaFile);
 		Task<List<TextureAsset>> SearchForTextures(Guid packId, string searchQuery);
 		Task<(string, byte[])> GetTexture(Guid packId, Guid assetId);
+		Task<bool> DeleteAllTextures(Guid mappingId);
 	}
 }

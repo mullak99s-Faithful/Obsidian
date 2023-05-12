@@ -21,7 +21,7 @@ namespace Obsidian.API.Logic
 			_packRepository = packRepository;
 		}
 
-		public async Task<bool> AddModel(string fileName, string name, List<Guid> packIds, BlockModel model, string path, MinecraftVersion minVersion, MinecraftVersion maxVersion)
+		public async Task<bool> AddModel(string fileName, string name, List<Guid> packIds, BlockModel model, string path, MinecraftVersion minVersion, MinecraftVersion maxVersion, bool overwrite = false)
 		{
 			List<Pack?> packs = new();
 			foreach (var packId in packIds)
@@ -32,21 +32,29 @@ namespace Obsidian.API.Logic
 				if (pack?.ModelMappingsId == null || pack?.TextureMappingsId == null)
 					continue;
 
-				TextureMapping? texMapping = await _textureMapRepository.GetTextureMappingById(pack.TextureMappingsId);
-				if (texMapping == null)
-					continue;
+				var texMappingTask = _textureMapRepository.GetTextureMappingById(pack.TextureMappingsId);
+				var modelMappingTask = _modelMapRepository.GetModelMappingById(pack.ModelMappingsId.Value);
+				await Task.WhenAll(texMappingTask, modelMappingTask);
 
-				ModelMapping? mapping = await _modelMapRepository.GetModelMappingById(pack.ModelMappingsId.Value);
-				if (mapping == null)
+				TextureMapping? texMapping = texMappingTask.Result;
+				ModelMapping? mapping = modelMappingTask.Result;
+				if (texMapping == null || mapping == null)
 					continue;
 
 				ModelAsset newModel = new(model, new MCVersion(minVersion, maxVersion), name, path, fileName, texMapping.Assets);
 
-				bool doesExist = await _modelMapRepository.DoesModelExist(newModel, mapping.Id);
-				if (doesExist)
-					return false;
+				ModelAsset? existingModel = await _modelMapRepository.GetExistingModel(newModel, mapping.Id);
 
-				await _modelMapRepository.AddModel(newModel, mapping.Id);
+				List<Task> modelTasks = new();
+
+				if (existingModel != null)
+				{
+					if (overwrite)
+						modelTasks.Add(_modelMapRepository.DeleteModel(existingModel.Id, mapping.Id));
+					else return false;
+				}
+				modelTasks.Add(_modelMapRepository.AddModel(newModel, mapping.Id));
+				await Task.WhenAll(modelTasks);
 			}
 			return true;
 		}
@@ -89,12 +97,16 @@ namespace Obsidian.API.Logic
 			ModelAsset? model = map?.Models.FirstOrDefault(x => x.FileName == name.ToUpper() && x.MCVersion.IsMatchingVersion(version));
 			return model;
 		}
+
+		public async Task<bool> DeleteAllModels(Guid mappingId)
+			=> await _modelMapRepository.ClearModels(mappingId);
 	}
 
 	public interface IModelLogic
 	{
-		Task<bool> AddModel(string fileName, string name, List<Guid> packIds, BlockModel model, string path, MinecraftVersion minVersion, MinecraftVersion maxVersion);
+		Task<bool> AddModel(string fileName, string name, List<Guid> packIds, BlockModel model, string path, MinecraftVersion minVersion, MinecraftVersion maxVersion, bool overwrite = false);
 		Task<List<ModelAsset>> SearchForModels(Guid packId, string searchQuery);
 		Task<ModelAsset?> GetModel(Guid packId, string name, MinecraftVersion version);
+		Task<bool> DeleteAllModels(Guid mappingId);
 	}
 }

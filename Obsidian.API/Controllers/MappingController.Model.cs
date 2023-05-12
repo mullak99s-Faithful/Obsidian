@@ -109,5 +109,50 @@ namespace Obsidian.API.Controllers
 				return NotFound();
 			return Ok(map);
 		}
+
+		[HttpPost("ModelMap/Replace/{id}")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:add-mapping")]
+		public async Task<IActionResult> ReplaceModelMapping([FromRoute] Guid id, IFormFile file)
+		{
+			if (file.Length == 0)
+				return BadRequest("Please select a file");
+			if (string.IsNullOrEmpty(id.ToString()))
+				return BadRequest("Please provide an id");
+
+			using var streamReader = new StreamReader(file.OpenReadStream());
+			string json = await streamReader.ReadToEndAsync();
+			List<ModelAsset>? map;
+			try
+			{
+				map = JsonConvert.DeserializeObject<List<ModelAsset>>(json);
+			}
+			catch (Exception)
+			{
+				// Something broke with the map
+				map = null;
+			}
+
+			if (map == null)
+				return BadRequest("Invalid map");
+
+			return await _modelMapRepository.ReplaceModels(id, map) ? Ok() : BadRequest("Invalid");
+		}
+
+		[HttpGet("ModelMap/Export/{id}")]
+		[ProducesResponseType(typeof(ModelMapping), 200)]
+		[SwaggerResponse(404, "Model mapping does not exist")]
+		public async Task<IActionResult> ExportModelMapping([FromRoute] Guid id)
+		{
+			ModelMapping? map = await _modelMapRepository.GetModelMappingById(id);
+			if (map == null)
+				return NotFound();
+
+			List<ModelAsset> modelAssets = map.Models;
+			if (modelAssets.Count == 0)
+				return NotFound("The model map contains no models!");
+
+			return Ok(modelAssets);
+		}
 	}
 }

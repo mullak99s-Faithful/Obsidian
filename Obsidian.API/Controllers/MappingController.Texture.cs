@@ -7,7 +7,7 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace Obsidian.API.Controllers
 {
-    public partial class MappingController
+	public partial class MappingController
 	{
 		[HttpGet("TextureMap/GetAll")]
 		[ProducesResponseType(typeof(IEnumerable<TextureMapping>), 200)]
@@ -114,6 +114,51 @@ namespace Obsidian.API.Controllers
 				return BadRequest("Please provide an id");
 
 			return await _textureMapRepository.DeleteById(mapGuid) ? Ok() : BadRequest();
+		}
+
+		[HttpPost("TextureMap/Replace/{id}")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:add-mapping")]
+		public async Task<IActionResult> ReplaceTextureMapping([FromRoute] Guid id, IFormFile file)
+		{
+			if (file.Length == 0)
+				return BadRequest("Please select a file");
+			if (string.IsNullOrEmpty(id.ToString()))
+				return BadRequest("Please provide an id");
+
+			using var streamReader = new StreamReader(file.OpenReadStream());
+			string json = await streamReader.ReadToEndAsync();
+			List<TextureAsset>? map;
+			try
+			{
+				map = JsonConvert.DeserializeObject<List<TextureAsset>>(json);
+			}
+			catch (Exception)
+			{
+				// Something broke with the map
+				map = null;
+			}
+
+			if (map == null)
+				return BadRequest("Invalid map");
+
+			return await _textureMapRepository.ReplaceAssets(id, map) ? Ok() : BadRequest("Invalid");
+		}
+
+		[HttpGet("TextureMap/Export/{id}")]
+		[ProducesResponseType(typeof(ModelMapping), 200)]
+		[SwaggerResponse(404, "Texture mapping does not exist")]
+		public async Task<IActionResult> ExportTextureMapping([FromRoute] Guid id)
+		{
+			TextureMapping? map = await _textureMapRepository.GetTextureMappingById(id);
+			if (map == null)
+				return NotFound();
+
+			List<TextureAsset> assets = map.Assets;
+			if (assets.Count == 0)
+				return NotFound("The texture map contains no assets!");
+
+			return Ok(assets);
 		}
 	}
 }

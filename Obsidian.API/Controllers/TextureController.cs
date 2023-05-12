@@ -79,5 +79,17 @@ namespace Obsidian.API.Controllers
 			};
 			return fileContentResult;
 		}
+
+		[HttpPost("Clear/{textureMappingId}")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:upload-texture")]
+		public async Task<IActionResult> ClearAllTextures([FromRoute] Guid textureMappingId)
+		{
+			if (string.IsNullOrWhiteSpace(textureMappingId.ToString()))
+				return BadRequest("Please provide an id");
+
+			bool success = await _logic.DeleteAllTextures(textureMappingId);
+			return success ? Ok() : BadRequest("Invalid");
+		}
 	}
 }

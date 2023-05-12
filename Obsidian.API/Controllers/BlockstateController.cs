@@ -111,5 +111,17 @@ namespace Obsidian.API.Controllers
 			};
 			return fileContentResult;
 		}
+
+		[HttpPost("Clear/{blockStateMappingId}")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:upload-texture")]
+		public async Task<IActionResult> ClearAllBlockStates([FromRoute] Guid blockStateMappingId)
+		{
+			if (string.IsNullOrWhiteSpace(blockStateMappingId.ToString()))
+				return BadRequest("Please provide an id");
+
+			bool success = await _logic.DeleteAllBlockStates(blockStateMappingId);
+			return success ? Ok() : BadRequest("Invalid");
+		}
 	}
 }

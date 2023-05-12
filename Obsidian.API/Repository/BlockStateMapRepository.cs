@@ -167,6 +167,31 @@ namespace Obsidian.API.Repository
 			return updated.IsAcknowledged;
 		}
 
+		public async Task<bool> ClearBlockStates(Guid blockStateMapId)
+		{
+			var filter = Builders<BlockStateMapping>.Filter.Eq(t => t.Id, blockStateMapId);
+
+			var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
+
+			existingMap.Models = new();
+
+			var update = Builders<BlockStateMapping>.Update.Set(t => t.Models, existingMap.Models);
+			var updated = await _collection.UpdateOneAsync(filter, update);
+			return updated.IsAcknowledged;
+		}
+
+		public async Task<bool> ReplaceBlockStates(Guid blockStateMapId, List<BlockState> blockStates)
+		{
+			var filter = Builders<BlockStateMapping>.Filter.Eq(t => t.Id, blockStateMapId);
+
+			var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
+
+			existingMap.Models = blockStates;
+
+			var update = Builders<BlockStateMapping>.Update.Set(t => t.Models, existingMap.Models);
+			var updated = await _collection.UpdateOneAsync(filter, update);
+			return updated.IsAcknowledged;
+		}
 		#endregion
 
 		#region Delete
@@ -204,6 +229,8 @@ namespace Obsidian.API.Repository
 		Task<bool> AddBlockState(BlockState asset, Guid blockStateMapId);
 		Task<bool> EditBlockState(BlockState asset, Guid blockStateId, Guid blockStateMapId);
 		Task<bool> DeleteBlockState(Guid blockStateId, Guid blockStateMapId);
+		Task<bool> ClearBlockStates(Guid blockStateMapId);
+		Task<bool> ReplaceBlockStates(Guid blockStateMapId, List<BlockState> blockStates);
 
 		// Delete
 		Task<bool> DeleteById(Guid id);
