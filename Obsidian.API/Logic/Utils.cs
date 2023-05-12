@@ -4,13 +4,13 @@ namespace Obsidian.API.Logic
 {
 	public static class Utils
 	{
+		private const CompressionLevel COMPRESSION_LEVEL = CompressionLevel.Optimal;
+
 		public static byte[] WriteEntryToByteArray(ZipArchiveEntry entry)
 		{
 			using var stream = new MemoryStream();
 			using (var entryStream = entry.Open())
-			{
 				entryStream.CopyTo(stream);
-			}
 			return stream.ToArray();
 		}
 
@@ -31,15 +31,15 @@ namespace Obsidian.API.Logic
 		private static void AddDirectoryToZip(string directoryPath, ZipArchive archive, string entryPrefix)
 		{
 			foreach (string filePath in Directory.GetFiles(directoryPath))
-				archive.CreateEntryFromFile(filePath, entryPrefix + Path.GetFileName(filePath));
+				archive.CreateEntryFromFile(filePath, entryPrefix + Path.GetFileName(filePath), COMPRESSION_LEVEL);
 
-			foreach (string subdirectoryPath in Directory.GetDirectories(directoryPath))
+			foreach (string subDirectoryPath in Directory.GetDirectories(directoryPath))
 			{
-				string subdirectoryName = Path.GetFileName(subdirectoryPath);
-				string entryName = entryPrefix + subdirectoryName + "/";
+				string subDirectoryName = Path.GetFileName(subDirectoryPath);
+				string entryName = entryPrefix + subDirectoryName + "/";
 
-				archive.CreateEntry(entryName);
-				AddDirectoryToZip(subdirectoryPath, archive, entryName);
+				archive.CreateEntry(entryName, COMPRESSION_LEVEL);
+				AddDirectoryToZip(subDirectoryPath, archive, entryName);
 			}
 		}
 	}
