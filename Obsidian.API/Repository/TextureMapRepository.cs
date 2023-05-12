@@ -192,6 +192,10 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
 			var updated = await _collection.UpdateOneAsync(filter, update);
+
+			if (updated.IsAcknowledged)
+				_cache.Remove(textureMapId);
+
 			return updated.IsAcknowledged;
 		}
 
@@ -205,6 +209,10 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
 			var updated = await _collection.UpdateOneAsync(filter, update);
+
+			if (updated.IsAcknowledged)
+				_cache.Remove(textureMapId);
+
 			return updated.IsAcknowledged;
 		}
 		#endregion

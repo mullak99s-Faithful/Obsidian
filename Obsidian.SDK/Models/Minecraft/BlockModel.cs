@@ -27,6 +27,9 @@ namespace Obsidian.SDK.Models.Minecraft
 		[JsonProperty("display")]
 		public Dictionary<string, GuiDisplay>? Display { get; set; }
 
+		[JsonProperty("overrides")]
+		public List<Override> Overrides { get; set; }
+
 		public class Element
 		{
 			[JsonProperty("name")]
@@ -91,6 +94,15 @@ namespace Obsidian.SDK.Models.Minecraft
 
 			[JsonProperty("scale", DefaultValueHandling = DefaultValueHandling.Include)]
 			public List<float>? Scale { get; set; }
+		}
+
+		public class Override
+		{
+			[JsonProperty("predicate")]
+			public Dictionary<string, int> Predicate { get; set; }
+
+			[JsonProperty("model")]
+			public string Model { get; set; }
 		}
 
 		public string Serialize()

@@ -62,10 +62,10 @@ namespace Obsidian.API.Logic
 
 						string entryPath = entry.FullName.Replace("/", "\\");
 						bool isMcMeta = false;
-						TextureAsset? asset = textureMapping.Assets.Find(x => x.TexturePaths.Any(y => y.Path == entryPath));
+						TextureAsset? asset = textureMapping.Assets.Find(x => x.TexturePaths.Any(y => y.MCVersion.IsMatchingVersion(version) && y.Path == entryPath));
 						if (asset == null)
 						{
-							asset = textureMapping.Assets.Find(x => x.TexturePaths.Any(y => y.MCMeta && y.MCMetaPath == entryPath));
+							asset = textureMapping.Assets.Find(x => x.TexturePaths.Any(y => y.MCVersion.IsMatchingVersion(version) && y.MCMeta && y.MCMetaPath == entryPath));
 							if (asset == null)
 							{
 								Console.WriteLine($"Invalid asset: {entryPath}");

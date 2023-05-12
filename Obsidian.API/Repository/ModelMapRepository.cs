@@ -30,8 +30,14 @@ namespace Obsidian.API.Repository
 		{
 			try
 			{
+				if (_cache.TryGetValue(id, out ModelMapping modelMap))
+					return modelMap;
+
 				var filter = Builders<ModelMapping>.Filter.Eq(t => t.Id, id);
-				return await _collection.Find(filter).FirstOrDefaultAsync();
+				var result = await _collection.Find(filter).FirstOrDefaultAsync();
+
+				_cache.Set(id, result);
+				return result;
 			}
 			catch (Exception)
 			{
@@ -78,9 +84,28 @@ namespace Obsidian.API.Repository
 		{
 			try
 			{
-				var filter = Builders<ModelMapping>.Filter.Empty;
+				var ids = await GetAllModelMappingIds();
+
+				List<ModelMapping> mappings = new();
+				foreach (var id in ids)
+				{
+					if (_cache.TryGetValue(id.Key, out ModelMapping modelMap))
+						mappings.Add(modelMap);
+				}
+
+				if (mappings.Count == ids.Count)
+					return mappings;
+
+				var missingIds = ids.Where(x => !mappings.Select(y => y.Id).Contains(x.Key)).Select(x => x.Key).ToList();
+
+				var filter = Builders<ModelMapping>.Filter.In(t => t.Id, missingIds);
 				var documents = await _collection.Find(filter).ToListAsync();
-				return documents;
+
+				foreach (var document in documents.Where(x => x != null))
+					_cache.Set(document.Id, document);
+
+				mappings.AddRange(documents);
+				return mappings;
 			}
 			catch (Exception)
 			{
@@ -176,6 +201,10 @@ namespace Obsidian.API.Repository
 				var filter = Builders<ModelMapping>.Filter.Eq(t => t.Id, id);
 				var update = Builders<ModelMapping>.Update.Set(t => t.Name, newName);
 				var updated = await _collection.UpdateOneAsync(filter, update);
+
+				if (updated.IsAcknowledged)
+					_cache.Remove(id);
+
 				return updated.IsAcknowledged;
 			}
 			catch (Exception)
@@ -194,6 +223,10 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<ModelMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
+
+			if (updated.IsAcknowledged)
+				_cache.Remove(modelMapId);
+
 			return updated.IsAcknowledged;
 		}
 
@@ -210,6 +243,10 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<ModelMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
+
+			if (updated.IsAcknowledged)
+				_cache.Remove(modelMapId);
+
 			return updated.IsAcknowledged;
 		}
 
@@ -226,6 +263,10 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<ModelMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
+
+			if (updated.IsAcknowledged)
+				_cache.Remove(modelMapId);
+
 			return updated.IsAcknowledged;
 		}
 
@@ -239,6 +280,10 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<ModelMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
+
+			if (updated.IsAcknowledged)
+				_cache.Remove(modelMapId);
+
 			return updated.IsAcknowledged;
 		}
 
@@ -252,6 +297,10 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<ModelMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
+
+			if (updated.IsAcknowledged)
+				_cache.Remove(modelMapId);
+
 			return updated.IsAcknowledged;
 		}
 		#endregion
