@@ -42,5 +42,20 @@ namespace Obsidian.API.Logic
 				AddDirectoryToZip(subDirectoryPath, archive, entryName);
 			}
 		}
+
+		public static async Task<byte[]> GetBytesFromFormFileAsync(IFormFile formFile)
+		{
+			using var memoryStream = new MemoryStream();
+			await formFile.CopyToAsync(memoryStream);
+			return memoryStream.ToArray();
+		}
+
+		public static bool IsZipFile(byte[] fileBytes)
+		{
+			if (fileBytes.Length < 4)
+				return false;
+
+			return fileBytes[0] == 0x50 && fileBytes[1] == 0x4B && fileBytes[2] == 0x03 && fileBytes[3] == 0x04;
+		}
 	}
 }

@@ -1,20 +1,16 @@
 ﻿using Obsidian.API.Repository;
 using Obsidian.SDK.Enums;
 using Obsidian.SDK.Models;
+using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 using System.IO.Compression;
 using System.Text;
-using Newtonsoft.Json;
-using Obsidian.SDK.Models.Assets;
-using Obsidian.SDK.Models.Minecraft;
 using Pack = Obsidian.SDK.Models.Pack;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Obsidian.API.Logic
 {
 	public class PackLogic : IPackLogic
 	{
-		private readonly ITextureLogic _texLogic;
 		private readonly IPackPngLogic _packPngLogic;
 
 		private readonly ITextureMapRepository _textureMapRepository;
@@ -22,16 +18,17 @@ namespace Obsidian.API.Logic
 		private readonly IBlockStateMapRepository _blockStateMapRepository;
 		private readonly IPackRepository _packRepository;
 		private readonly ITextureBucket _textureBucket;
+		private readonly IMiscBucket _miscBucket;
 
-		public PackLogic(ITextureLogic texLogic, IPackPngLogic packPngLogic, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackRepository packRepository, ITextureBucket textureBucket)
+		public PackLogic(IPackPngLogic packPngLogic, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackRepository packRepository, ITextureBucket textureBucket, IMiscBucket miscBucket)
 		{
-			_texLogic = texLogic;
 			_packPngLogic = packPngLogic;
 			_textureMapRepository = textureMapRepository;
 			_modelMapRepository = modelMapRepository;
 			_blockStateMapRepository = blockStateMapRepository;
 			_packRepository = packRepository;
 			_textureBucket = textureBucket;
+			_miscBucket = miscBucket;
 		}
 
 		public async Task ImportPack(MinecraftVersion version, List<Guid> packIds, IFormFile packFile, bool overwrite)
@@ -165,26 +162,24 @@ namespace Obsidian.API.Logic
 				}
 			});
 
-			Task packMcMetaTask = File.WriteAllTextAsync(Path.Combine(dest, "pack.mcmeta"), pack.CreatePackMCMeta(branch), Encoding.UTF8);
-			Task packPngTask = AddPackPng(pack.Id, dest);
+			Task miscAssetsTask = Task.Run(async () =>
+			{
+				await AddMisc(pack, branch, dest);
+			});
+
+			Task automatedPackTask = Task.Run(async () =>
+			{
+				await PackAutomation(pack, branch, dest);
+			});
 
 			// These can be ran simultaneously since it won't exceed connections
-			await Task.WhenAll(textureAssetTask, modelAssetTask, blockStateTask, packMcMetaTask, packPngTask);
+			await Task.WhenAll(textureAssetTask, modelAssetTask, blockStateTask, miscAssetsTask, automatedPackTask);
 
 			// TODO: Allow changing this at some point. Temporary name atm for testing.
 			string zipPath = Path.Combine(packPath, $"{pack.Name}-{branch.Name}-Obsidian.zip");
 			Utils.CreateZipArchive(dest, zipPath);
 
 			Console.WriteLine($"Finished generating branch {branch.Name} for {pack.Name}!");
-		}
-
-		private async Task AddPackPng(Guid packId, string destination)
-		{
-			byte[]? packPng = await _packPngLogic.DownloadPackPng(packId);
-			if (packPng == null || packPng.Length == 0)
-				return;
-
-			await File.WriteAllBytesAsync(Path.Combine(destination, "pack.png"), packPng);
 		}
 
 		private async Task AddTexture(Pack pack, PackBranch branch, TextureAsset asset, string destination)
@@ -219,7 +214,7 @@ namespace Obsidian.API.Logic
 
 			if (!string.IsNullOrWhiteSpace(modelJson))
 			{
-				string dirPath = Path.Combine(destination, "assets", "minecraft", "models", asset.Path);
+				string dirPath = Path.Combine(GetMinecraftDirectory(destination), "models", asset.Path);
 				Directory.CreateDirectory(dirPath);
 
 				string filePath = Path.Combine(dirPath, asset.FileName);
@@ -231,13 +226,53 @@ namespace Obsidian.API.Logic
 		{
 			if (blockState.Data.Length > 0)
 			{
-				string dirPath = Path.Combine(destination, "assets", "minecraft", "blockstates");
+				string dirPath = Path.Combine(GetMinecraftDirectory(destination), "blockstates");
 				Directory.CreateDirectory(dirPath);
 
 				string filePath = Path.Combine(dirPath, blockState.FileName);
 				await File.WriteAllBytesAsync(filePath, blockState.Data);
 			}
 		}
+
+		private async Task AddMisc(Pack pack, PackBranch branch, string destination)
+		{
+			List<Task<MiscAsset?>> downloadTasks = pack.MiscAssetIds.Select(id => _miscBucket.DownloadMisc(id)).ToList();
+			await Task.WhenAll(downloadTasks);
+
+			foreach (MiscAsset? asset in downloadTasks.Select(task => task.Result).Where(x => x != null && x.MCVersion.IsMatchingVersion(branch.Version)))
+				await asset!.Extract(destination);
+
+		}
+
+		private async Task PackAutomation(Pack pack, PackBranch branch, string destination)
+		{
+			Console.WriteLine($"Running automation for {pack.Name} - {branch.Name}");
+
+			List<Task> automationTasks = new()
+			{
+				File.WriteAllTextAsync(Path.Combine(destination, "pack.mcmeta"), pack.CreatePackMCMeta(branch), Encoding.UTF8) // pack.mcmeta
+			};
+
+			// pack.png
+			byte[]? packPng = await _packPngLogic.DownloadPackPng(pack.Id);
+			if (packPng is { Length: > 0 })
+				automationTasks.Add(File.WriteAllBytesAsync(Path.Combine(destination, "pack.png"), packPng));
+
+			// Optifine
+			string optifineDirectory = GetOptifineDirectory(branch, destination);
+			Directory.CreateDirectory(optifineDirectory);
+
+			if (pack.EnableEmissives)
+				automationTasks.Add(File.WriteAllTextAsync(Path.Combine(optifineDirectory, "emissive.properties"), $"suffix.emissive={pack.EmissiveSuffix}"));
+
+			await Task.WhenAll(automationTasks);
+		}
+
+		private string GetOptifineDirectory(PackBranch branch, string destination)
+			=> Path.Combine(GetMinecraftDirectory(destination), (int)branch.Version < 13 ? "mcpatcher" : "optifine");
+
+		private string GetMinecraftDirectory(string destination)
+			=> Path.Combine(destination, "assets", "minecraft");
 
 		private string GetPackDestinationPath(Pack pack)
 		{

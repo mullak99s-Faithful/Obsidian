@@ -1,7 +1,6 @@
 - Automatic validation for generated packs (like MCTools)
 - Save missing/unused texture list to a file
-- Upload misc files (e.g. Sounds, Lang, etc.)
 - Automatically schedule pack builds (generated packs) and upload them to git
 - Specify a manual build, include a changelog
 - Automatic credits generation (add credits on texture upload)
-- Add Optifine textures to Texture Mappings
+- Add Optifine textures to Texture Mappings (Might need an alternate solution since properties will need adding too)

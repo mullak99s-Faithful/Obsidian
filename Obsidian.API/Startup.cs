@@ -68,6 +68,7 @@ namespace Obsidian.API
 			// Buckets
 			services.AddScoped<ITextureBucket, TextureBucket>();
 			services.AddScoped<IPackPngBucket, PackPngBucket>();
+			services.AddScoped<IMiscBucket, MiscBucket>();
 
 			// Logic
 			services.AddScoped<ITextureLogic, TextureLogic>();
@@ -75,6 +76,7 @@ namespace Obsidian.API
 			services.AddScoped<IBlockStateLogic, BlockStateLogic>();
 			services.AddScoped<IPackLogic, PackLogic>();
 			services.AddScoped<IPackPngLogic, PackPngLogic>();
+			services.AddScoped<IMiscAssetLogic, MiscAssetLogic>();
 
 			BuildServiceProviderAsync(services).Wait();
 

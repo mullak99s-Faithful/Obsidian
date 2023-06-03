@@ -10,9 +10,12 @@ namespace Obsidian.SDK.Models
 		public Guid TextureMappingsId { get; set; }
 		public Guid? ModelMappingsId { get; set; }
 		public Guid? BlockStateMappingsId { get; set; }
+		public List<Guid> MiscAssetIds { get; set; } = new();
+		public bool EnableEmissives { get; set; }
+		public string EmissiveSuffix { get; set; } = "_e";
 		public string Description { get; set; }
 
-		public Pack(string name, string description, Guid textureMappingsId, Guid? modelMappingsId, Guid? blockStateMappingsId) : this()
+		public Pack(string name, string description, Guid textureMappingsId, Guid? modelMappingsId, Guid? blockStateMappingsId, bool enableEmissives = false, string emissiveSuffix = "_e") : this()
 		{
 			Id = Guid.NewGuid();
 			Name = name;
@@ -20,6 +23,8 @@ namespace Obsidian.SDK.Models
 			TextureMappingsId = textureMappingsId;
 			ModelMappingsId = modelMappingsId;
 			BlockStateMappingsId = blockStateMappingsId;
+			EnableEmissives = enableEmissives;
+			EmissiveSuffix = emissiveSuffix;
 		}
 
 		public Pack()

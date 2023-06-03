@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Obsidian.API.Logic;
 using Obsidian.API.Repository;
+using Obsidian.SDK.Enums;
 using Obsidian.SDK.Models;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -18,15 +19,17 @@ namespace Obsidian.API.Controllers
 		private readonly IModelMapRepository _modelMapRepository;
 		private readonly IBlockStateMapRepository _blockStateMapRepository;
 		private readonly IPackPngLogic _packPngLogic;
+		private readonly IMiscAssetLogic _miscAssetLogic;
 		private readonly ILogger<PackController> _logger;
 
-		public PackController(IPackRepository packRepository, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackPngLogic packPngLogic, ILogger<PackController> logger)
+		public PackController(IPackRepository packRepository, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackPngLogic packPngLogic, IMiscAssetLogic miscAssetLogic, ILogger<PackController> logger)
 		{
 			_packRepository = packRepository;
 			_textureMapRepository = textureMapRepository;
 			_modelMapRepository = modelMapRepository;
 			_blockStateMapRepository = blockStateMapRepository;
 			_packPngLogic = packPngLogic;
+			_miscAssetLogic = miscAssetLogic;
 			_logger = logger;
 		}
 
@@ -86,7 +89,7 @@ namespace Obsidian.API.Controllers
 		[HttpPost("Edit/{id}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:edit-pack")]
-		public async Task<IActionResult> EditPack([FromRoute] Guid id, string? name, string? description, Guid? textureMappingId, Guid? modelMappingId, Guid? blockStateMappingId)
+		public async Task<IActionResult> EditPack([FromRoute] Guid id, string? name, string? description, Guid? textureMappingId, Guid? modelMappingId, Guid? blockStateMappingId, bool? emissives, string? emissiveSuffix)
 		{
 			if (textureMappingId != null)
 			{
@@ -106,7 +109,7 @@ namespace Obsidian.API.Controllers
 					return NotFound("Invalid block state map!");
 			}
 
-			bool success = await _packRepository.UpdatePackById(id, name, textureMappingId, modelMappingId, blockStateMappingId, description);
+			bool success = await _packRepository.UpdatePackById(id, name, textureMappingId, modelMappingId, blockStateMappingId, description, null, emissives, emissiveSuffix);
 			if (!success)
 				return BadRequest();
 			return Ok();
@@ -126,7 +129,7 @@ namespace Obsidian.API.Controllers
 		[HttpPost("PackPng/Add")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:edit-pack")]
-		public async Task<IActionResult> AddPackPNG(Guid packId, IFormFile packPng, bool overwrite = false)
+		public async Task<IActionResult> AddPackPNG(Guid packId, IFormFile packPng, bool overwrite = true)
 		{
 			bool success = await _packPngLogic.UploadPackPng(packId, packPng, overwrite);
 			if (!success)
@@ -142,6 +145,37 @@ namespace Obsidian.API.Controllers
 			bool success = await _packPngLogic.DeletePackPng(packId);
 			if (!success)
 				return BadRequest();
+			return Ok();
+		}
+
+		[HttpPost("Misc/Add")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:edit-pack")]
+		public async Task<IActionResult> AddMiscAsset(Guid packId, MinecraftVersion minVersion, MinecraftVersion maxVersion, IFormFile miscAsset, bool overwrite = true)
+		{
+			Pack? pack = await _packRepository.GetPackById(packId);
+			if (pack == null)
+				return BadRequest("Invalid pack id!");
+
+			byte[] bytes = await Utils.GetBytesFromFormFileAsync(miscAsset);
+
+			if (bytes.Length == 0 || !Utils.IsZipFile(bytes))
+				return BadRequest("Invalid misc asset!");
+
+			await _miscAssetLogic.AddMiscAsset(pack, minVersion, maxVersion, bytes, overwrite);
+			return Ok();
+		}
+
+		[HttpPost("Misc/Delete")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:edit-pack")]
+		public async Task<IActionResult> DeleteMiscAsset(Guid packId, Guid assetId)
+		{
+			Pack? pack = await _packRepository.GetPackById(packId);
+			if (pack == null)
+				return BadRequest("Invalid pack id!");
+
+			await _miscAssetLogic.DeleteMiscAsset(pack, assetId);
 			return Ok();
 		}
 	}
