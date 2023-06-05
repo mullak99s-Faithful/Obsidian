@@ -14,5 +14,8 @@
         "ClientId": "<ClientId>",
         "ClientSecret": "<ClientSecret>"
     },
+    "Tokens": {
+        "GitHub": "<GitHubToken>"
+    },
     "AllowedHosts": "*"
 }

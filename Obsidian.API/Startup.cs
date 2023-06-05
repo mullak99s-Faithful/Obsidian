@@ -6,6 +6,7 @@ using Obsidian.API.Extensions;
 using Obsidian.API.Logic;
 using Obsidian.API.Repository;
 using Obsidian.API.Services;
+using Octokit;
 using Swashbuckle.AspNetCore.SwaggerUI;
 
 namespace Obsidian.API
@@ -55,15 +56,24 @@ namespace Obsidian.API
 				return database;
 			});
 
+			var githubClient = new GitHubClient(new ProductHeaderValue("obsidianapi"))
+			{
+				Credentials = new Credentials(Configuration["Tokens:GitHub"])
+			};
+
+			services.AddSingleton<IGitHubClient>(githubClient);
+
 			// Cache
 			services.AddSingleton<ITextureMapCache, TextureMapCache>();
 			services.AddSingleton<IModelMapCache, ModelMapCache>();
+			services.AddSingleton<IVersionAssetsCache, VersionAssetsCache>();
 
 			// Repos
 			services.AddScoped<ITextureMapRepository, TextureMapRepository>();
 			services.AddScoped<IModelMapRepository, ModelMapRepository>();
 			services.AddScoped<IBlockStateMapRepository, BlockStateMapRepository>();
 			services.AddScoped<IPackRepository, PackRepository>();
+			services.AddScoped<IVersionAssetsRepository, VersionAssetsRepository>();
 
 			// Buckets
 			services.AddScoped<ITextureBucket, TextureBucket>();
@@ -77,6 +87,7 @@ namespace Obsidian.API
 			services.AddScoped<IPackLogic, PackLogic>();
 			services.AddScoped<IPackPngLogic, PackPngLogic>();
 			services.AddScoped<IMiscAssetLogic, MiscAssetLogic>();
+			services.AddScoped<IToolsLogic, ToolsLogic>();
 
 			BuildServiceProviderAsync(services).Wait();
 

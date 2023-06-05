@@ -119,7 +119,9 @@ namespace Obsidian.API.Services
 				"write:upload-model",
 				"write:delete-model",
 				"write:upload-blockstate",
-				"write:delete-blockstate"
+				"write:delete-blockstate",
+				"write:pregenerate-assets",
+				"write:purge-assets"
 			};
 		}
 	}
