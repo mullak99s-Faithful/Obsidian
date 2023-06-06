@@ -2,3 +2,4 @@
 - Specify a manual build, include a changelog
 - Automatic credits generation (add credits on texture upload)
 - Add Optifine textures to Texture Mappings (Might need an alternate solution since properties will need adding too)
+- Automatically add textures to a new branch (Continuous builds)

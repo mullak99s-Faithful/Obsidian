@@ -20,9 +20,10 @@ namespace Obsidian.API.Controllers
 		private readonly IBlockStateMapRepository _blockStateMapRepository;
 		private readonly IPackPngLogic _packPngLogic;
 		private readonly IMiscAssetLogic _miscAssetLogic;
+		private readonly IPackLogic _packLogic;
 		private readonly ILogger<PackController> _logger;
 
-		public PackController(IPackRepository packRepository, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackPngLogic packPngLogic, IMiscAssetLogic miscAssetLogic, ILogger<PackController> logger)
+		public PackController(IPackRepository packRepository, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackPngLogic packPngLogic, IMiscAssetLogic miscAssetLogic, IPackLogic packLogic, ILogger<PackController> logger)
 		{
 			_packRepository = packRepository;
 			_textureMapRepository = textureMapRepository;
@@ -30,6 +31,7 @@ namespace Obsidian.API.Controllers
 			_blockStateMapRepository = blockStateMapRepository;
 			_packPngLogic = packPngLogic;
 			_miscAssetLogic = miscAssetLogic;
+			_packLogic = packLogic;
 			_logger = logger;
 		}
 
@@ -80,7 +82,7 @@ namespace Obsidian.API.Controllers
 			if (blockStateMappingId != null && await _blockStateMapRepository.GetBlockStateMappingById(blockStateMappingId.Value) == null)
 				return NotFound("Invalid model map!");
 
-			bool success = await _packRepository.AddPack(new Pack(name, description, textureMappingId, modelMappingId, blockStateMappingId));
+			bool success = await _packLogic.AddPack(new Pack(name, description, textureMappingId, modelMappingId, blockStateMappingId));
 			if (!success)
 				return BadRequest();
 			return Ok();
@@ -120,7 +122,11 @@ namespace Obsidian.API.Controllers
 		[Authorize("write:delete-pack")]
 		public async Task<IActionResult> DeletePack([FromRoute] Guid id)
 		{
-			bool success = await _packRepository.DeleteById(id);
+			bool success = false;
+			Pack? pack = await _packRepository.GetPackById(id);
+			if (pack != null)
+				success = await _packLogic.DeletePack(pack);
+
 			if (!success)
 				return BadRequest();
 			return Ok();
@@ -176,6 +182,15 @@ namespace Obsidian.API.Controllers
 				return BadRequest("Invalid pack id!");
 
 			await _miscAssetLogic.DeleteMiscAsset(pack, assetId);
+			return Ok();
+		}
+
+		[HttpGet("Triggers/PackCheck")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:generate-packs")]
+		public IActionResult DoPackCheck(Guid packId, bool fullCheck = false)
+		{
+			Task.Run(() => _ = _packLogic.TriggerPackCheck(packId, fullCheck)); // Run in the background
 			return Ok();
 		}
 	}

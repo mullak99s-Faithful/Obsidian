@@ -7,7 +7,6 @@ using System.IO.Compression;
 using System.Text;
 using Obsidian.SDK.Models.Tools;
 using Pack = Obsidian.SDK.Models.Pack;
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace Obsidian.API.Logic
@@ -15,7 +14,6 @@ namespace Obsidian.API.Logic
 	public class PackLogic : IPackLogic
 	{
 		private readonly IPackPngLogic _packPngLogic;
-
 		private readonly ITextureMapRepository _textureMapRepository;
 		private readonly IModelMapRepository _modelMapRepository;
 		private readonly IBlockStateMapRepository _blockStateMapRepository;
@@ -23,6 +21,7 @@ namespace Obsidian.API.Logic
 		private readonly ITextureBucket _textureBucket;
 		private readonly IMiscBucket _miscBucket;
 		private readonly IToolsLogic _toolsLogic;
+		private readonly IContinuousPackLogic _continuousPackLogic;
 
 		private readonly List<string> _textureBlacklist = new()
 		{
@@ -40,7 +39,7 @@ namespace Obsidian.API.Logic
 			@"assets\/minecraft\/textures\/environment\/clouds.png"
 		};
 
-		public PackLogic(IPackPngLogic packPngLogic, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackRepository packRepository, ITextureBucket textureBucket, IMiscBucket miscBucket, IToolsLogic toolsLogic)
+		public PackLogic(IPackPngLogic packPngLogic, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackRepository packRepository, ITextureBucket textureBucket, IMiscBucket miscBucket, IToolsLogic toolsLogic, IContinuousPackLogic continuousPackLogic)
 		{
 			_packPngLogic = packPngLogic;
 			_textureMapRepository = textureMapRepository;
@@ -50,6 +49,83 @@ namespace Obsidian.API.Logic
 			_textureBucket = textureBucket;
 			_miscBucket = miscBucket;
 			_toolsLogic = toolsLogic;
+			_continuousPackLogic = continuousPackLogic;
+		}
+
+		public async Task<bool> AddPack(Pack pack)
+		{
+			bool success = await _packRepository.AddPack(pack);
+			if (success)
+				_continuousPackLogic.AddPack(pack);
+
+			return success;
+		}
+
+		public async Task<bool> DeletePack(Pack pack)
+		{
+			bool success = await _packRepository.DeleteById(pack.Id);
+			if (success)
+				_continuousPackLogic.DeletePack(pack);
+
+			return success;
+		}
+
+		public async Task<bool> AddBranch(Pack pack, PackBranch branch)
+		{
+			bool success = await _packRepository.AddBranch(pack.Id, branch);
+			if (success)
+				_continuousPackLogic.AddBranch(pack, branch);
+
+			return success;
+		}
+
+		public async Task<bool> DeleteBranch(Pack pack, PackBranch branch)
+		{
+			bool success = await _packRepository.DeleteBranch(pack.Id, branch.Id);
+			if (success)
+				_continuousPackLogic.DeleteBranch(pack, branch);
+
+			return success;
+		}
+
+		public async Task TriggerPackCheck(Guid packId, bool doFullCheck = false)
+		{
+			Pack? pack = await _packRepository.GetPackById(packId);
+			if (pack == null)
+				return;
+
+			Console.WriteLine($"Starting pack check for {pack.Name}...");
+
+			_continuousPackLogic.AddPack(pack);
+			foreach(PackBranch branch in pack.Branches)
+				_continuousPackLogic.AddBranch(pack, branch);
+
+			// Full Check
+			if (!doFullCheck)
+			{
+				Console.WriteLine($"Finished pack check for {pack.Name}!");
+				return;
+			}
+
+			// Textures
+			TextureMapping? texMap = await _textureMapRepository.GetTextureMappingById(pack.TextureMappingsId);
+			if (texMap == null)
+				return;
+
+			List<TextureAsset> supportedAssets = new();
+			foreach(PackBranch branch in pack.Branches)
+				supportedAssets.AddRange(texMap.Assets.Where(x => x.TexturePaths.Any(y => y.MCVersion.IsMatchingVersion(branch.Version))));
+
+			foreach (TextureAsset asset in supportedAssets)
+				await _continuousPackLogic.AddTexture(pack, asset);
+
+			// Models
+
+			// Blockstates
+
+			// Misc
+
+			Console.WriteLine($"Finished full pack check for {pack.Name}!");
 		}
 
 		public async Task ImportPack(MinecraftVersion version, List<Guid> packIds, IFormFile packFile, bool overwrite)
@@ -309,7 +385,7 @@ namespace Obsidian.API.Logic
 			List<string> packAssets = GetAllTextures(packPath);
 			string reportPath = Path.Combine(reportRootPath, $"Report-{pack.Name}-{branch.Name}.txt");
 
-			PackReport packReport = await CompareTextures(packAssets, assets.Textures, _textureBlacklist, reportPath);
+			PackReport packReport = await CompareTextures(packAssets, assets.Textures);
 
 			Console.WriteLine($"Missing textures for {pack.Name} - {branch.Name}: {packReport.MissingTotal}");
 			await packReport.GenerateReport(reportPath);
@@ -321,7 +397,7 @@ namespace Obsidian.API.Logic
 			return pngFiles.Select(file => file.Replace("/", "\\").Replace(path, "").Replace("\\", "/").TrimStart('/')).ToList();
 		}
 
-		private async Task<PackReport> CompareTextures(List<string> packFiles, List<string> refFiles, List<string> blacklist, string reportPath)
+		private async Task<PackReport> CompareTextures(List<string> packFiles, List<string> refFiles)
 		{
 			PackReport packReport = new PackReport();
 
@@ -330,7 +406,7 @@ namespace Obsidian.API.Logic
 			{
 				refFiles.ForEach(x =>
 				{
-					if (!blacklist.Any(rule => Regex.IsMatch(x, rule)))
+					if (!_textureBlacklist.Any(rule => Regex.IsMatch(x, rule)))
 					{
 						packReport.TotalTextures++;
 						if (packFiles.Contains(x))
@@ -346,7 +422,7 @@ namespace Obsidian.API.Logic
 			{
 				packFiles.ForEach(x =>
 				{
-					if (!blacklist.Any(rule => Regex.IsMatch(x, rule)) && !refFiles.Contains(x))
+					if (!_textureBlacklist.Any(rule => Regex.IsMatch(x, rule)) && !refFiles.Contains(x))
 						packReport.UnusedTextures.Add(x); // MC doesn't contain this texture
 				});
 			});
@@ -370,7 +446,12 @@ namespace Obsidian.API.Logic
 
 	public interface IPackLogic
 	{
+		Task<bool> AddPack(Pack pack);
+		Task<bool> DeletePack(Pack pack);
+		Task<bool> AddBranch(Pack pack, PackBranch branch);
+		Task<bool> DeleteBranch(Pack pack, PackBranch branch);
 		Task ImportPack(MinecraftVersion version, List<Guid> packIds, IFormFile packFile, bool overwrite);
 		void GeneratePacks(List<Guid> packIds);
+		Task TriggerPackCheck(Guid packId, bool doFullCheck = false);
 	}
 }

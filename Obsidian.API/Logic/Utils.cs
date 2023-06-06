@@ -16,9 +16,16 @@ namespace Obsidian.API.Logic
 
 		public static void FastDeleteAll(string path)
 		{
-			Parallel.ForEach(Directory.GetFiles(path), File.Delete);
-			Parallel.ForEach(Directory.GetDirectories(path), FastDeleteAll);
-			Directory.Delete(path, false);
+			try
+			{
+				Parallel.ForEach(Directory.GetFiles(path), File.Delete);
+				Parallel.ForEach(Directory.GetDirectories(path), FastDeleteAll);
+				Directory.Delete(path, false);
+			}
+			catch (Exception)
+			{
+				// Ignore exceptions
+			}
 		}
 
 		public static void CreateZipArchive(string directoryPath, string archivePath)

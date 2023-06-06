@@ -10,24 +10,25 @@ namespace Obsidian.API.Logic
 		private readonly ITextureMapRepository _textureMapRepository;
 		private readonly IPackRepository _packRepository;
 		private readonly ITextureBucket _textureBucket;
-		private readonly IPackPngBucket _packPngBucket;
+		private readonly IContinuousPackLogic _continuousPackLogic;
 
-		public TextureLogic(ITextureMapRepository textureMapRepository, IPackRepository packRepository, ITextureBucket textureBucket, IPackPngBucket packPngBucket)
+		public TextureLogic(ITextureMapRepository textureMapRepository, IPackRepository packRepository, ITextureBucket textureBucket, IContinuousPackLogic continuousPackLogic)
 		{
 			_textureMapRepository = textureMapRepository;
 			_packRepository = packRepository;
 			_textureBucket = textureBucket;
-			_packPngBucket = packPngBucket;
+			_continuousPackLogic = continuousPackLogic;
 		}
 
 		private async Task Upload(Pack pack, TextureAsset asset, IFormFile textureFile, IFormFile? mcMetaFile)
 		{
+			List<Task> uploadTasks = new();
 			if (textureFile is { Length: > 0 })
 			{
 				using var ms = new MemoryStream();
 				await textureFile.CopyToAsync(ms);
 				byte[] textureBytes = ms.ToArray();
-				await _textureBucket.UploadTexture(pack.Id, asset.Id, textureBytes);
+				uploadTasks.Add(_textureBucket.UploadTexture(pack.Id, asset.Id, textureBytes));
 			}
 
 			if (mcMetaFile is { Length: > 0 })
@@ -35,8 +36,10 @@ namespace Obsidian.API.Logic
 				using var ms = new MemoryStream();
 				await textureFile.CopyToAsync(ms);
 				byte[] mcMetaBytes = ms.ToArray();
-				await _textureBucket.UploadMCMeta(pack.Id, asset.Id, mcMetaBytes);
+				uploadTasks.Add(_textureBucket.UploadMCMeta(pack.Id, asset.Id, mcMetaBytes));
 			}
+			await Task.WhenAll(uploadTasks);
+			await _continuousPackLogic.AddTexture(pack, asset);
 		}
 
 		public async Task<bool> AddTexture(string textureName, List<Guid> packIds, IFormFile textureFile, IFormFile? mcMetaFile)
@@ -55,7 +58,7 @@ namespace Obsidian.API.Logic
 				if (texture == null)
 					continue;
 
-				await Upload(pack, texture,  textureFile, mcMetaFile);
+				await Upload(pack, texture, textureFile, mcMetaFile);
 			}
 			return true;
 		}

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Obsidian.API.Logic;
 using Obsidian.API.Repository;
 using Obsidian.SDK.Enums;
 using Obsidian.SDK.Models;
@@ -14,11 +15,13 @@ namespace Obsidian.API.Controllers
 	public class BranchController : ControllerBase
 	{
 		private readonly IPackRepository _packRepository;
+		private readonly IPackLogic _packLogic;
 		private readonly ILogger<BranchController> _logger;
 
-		public BranchController(IPackRepository packRepository, ILogger<BranchController> logger)
+		public BranchController(IPackRepository packRepository, IPackLogic packLogic, ILogger<BranchController> logger)
 		{
 			_packRepository = packRepository;
+			_packLogic = packLogic;
 			_logger = logger;
 		}
 
@@ -55,15 +58,27 @@ namespace Obsidian.API.Controllers
 		[Authorize("write:add-branch")]
 		public async Task<IActionResult> AddBranch([FromRoute] Guid id, string branchName, MinecraftVersion version)
 		{
-			return await _packRepository.AddBranch(id, new PackBranch(branchName, version)) ? Ok() : BadRequest();
+			Pack? pack = await _packRepository.GetPackById(id);
+			if (pack == null)
+				return NotFound("Pack not found");
+
+			return await _packLogic.AddBranch(pack, new PackBranch(branchName, version)) ? Ok() : BadRequest();
 		}
 
 		[HttpPost("Delete/{packId}/{branchId}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:delete-branch")]
-		public async Task<IActionResult> DeleteBranch([FromRoute] Guid packId, [FromRoute] Guid branchId)
+		public async Task<IActionResult> DeleteBranch([FromRoute] Guid id, [FromRoute] Guid branchId)
 		{
-			return await _packRepository.DeleteBranch(packId, branchId) ? Ok() : BadRequest();
+			Pack? pack = await _packRepository.GetPackById(id);
+			if (pack == null)
+				return NotFound("Pack not found");
+
+			PackBranch? branch = pack.Branches.FirstOrDefault(b => b.Id == branchId);
+			if (branch == null)
+				return NotFound("Branch not found");
+
+			return await _packLogic.DeleteBranch(pack, branch) ? Ok() : BadRequest();
 		}
 	}
 }

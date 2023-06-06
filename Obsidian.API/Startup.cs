@@ -88,6 +88,7 @@ namespace Obsidian.API
 			services.AddScoped<IPackPngLogic, PackPngLogic>();
 			services.AddScoped<IMiscAssetLogic, MiscAssetLogic>();
 			services.AddScoped<IToolsLogic, ToolsLogic>();
+			services.AddScoped<IContinuousPackLogic, ContinuousPackLogic>();
 
 			BuildServiceProviderAsync(services).Wait();
 
