@@ -5,7 +5,10 @@ using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 using System.IO.Compression;
 using System.Text;
+using Obsidian.SDK.Models.Tools;
 using Pack = Obsidian.SDK.Models.Pack;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace Obsidian.API.Logic
 {
@@ -19,8 +22,25 @@ namespace Obsidian.API.Logic
 		private readonly IPackRepository _packRepository;
 		private readonly ITextureBucket _textureBucket;
 		private readonly IMiscBucket _miscBucket;
+		private readonly IToolsLogic _toolsLogic;
 
-		public PackLogic(IPackPngLogic packPngLogic, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackRepository packRepository, ITextureBucket textureBucket, IMiscBucket miscBucket)
+		private readonly List<string> _textureBlacklist = new()
+		{
+			@"assets\/minecraft\/optifine",
+			@"assets\/\b(?!minecraft\b|realms\b).*?\b",
+			@"textures\/.+\/.+_e(missive)?\.png",
+			@"assets\/minecraft\/optifine",
+			@"textures\/misc",
+			@"textures\/font",
+			@"_MACOSX",
+			@"assets\/minecraft\/textures\/ctm",
+			@"assets\/minecraft\/textures\/custom",
+			@"textures\/colormap",
+			@"background\/panorama_overlay.png",
+			@"assets\/minecraft\/textures\/environment\/clouds.png"
+		};
+
+		public PackLogic(IPackPngLogic packPngLogic, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackRepository packRepository, ITextureBucket textureBucket, IMiscBucket miscBucket, IToolsLogic toolsLogic)
 		{
 			_packPngLogic = packPngLogic;
 			_textureMapRepository = textureMapRepository;
@@ -29,6 +49,7 @@ namespace Obsidian.API.Logic
 			_packRepository = packRepository;
 			_textureBucket = textureBucket;
 			_miscBucket = miscBucket;
+			_toolsLogic = toolsLogic;
 		}
 
 		public async Task ImportPack(MinecraftVersion version, List<Guid> packIds, IFormFile packFile, bool overwrite)
@@ -177,7 +198,11 @@ namespace Obsidian.API.Logic
 
 			// TODO: Allow changing this at some point. Temporary name atm for testing.
 			string zipPath = Path.Combine(packPath, $"{pack.Name}-{branch.Name}-Obsidian.zip");
-			Utils.CreateZipArchive(dest, zipPath);
+
+			Task zipTask = Task.Run(() => Utils.CreateZipArchive(dest, zipPath));
+			Task packValidationTask = PackValidation(pack, branch, dest, packPath);
+
+			await Task.WhenAll(zipTask, packValidationTask);
 
 			Console.WriteLine($"Finished generating branch {branch.Name} for {pack.Name}!");
 		}
@@ -266,6 +291,67 @@ namespace Obsidian.API.Logic
 				automationTasks.Add(File.WriteAllTextAsync(Path.Combine(optifineDirectory, "emissive.properties"), $"suffix.emissive={pack.EmissiveSuffix}"));
 
 			await Task.WhenAll(automationTasks);
+		}
+
+		private async Task PackValidation(Pack pack, PackBranch branch, string packPath, string reportRootPath)
+		{
+			var response = await _toolsLogic.GetMinecraftJavaAssets(branch.GetVersion(), true);
+
+			if (!response.IsSuccess || response.Data == null)
+			{
+				Console.WriteLine($"Unable to run pack validation for {pack.Name} - {branch.Name}: {response.Message}");
+				return;
+			}
+
+			Console.WriteLine($"Running pack validation for {pack.Name} - {branch.Name}");
+
+			MCAssets assets = response.Data;
+			List<string> packAssets = GetAllTextures(packPath);
+			string reportPath = Path.Combine(reportRootPath, $"Report-{pack.Name}-{branch.Name}.txt");
+
+			PackReport packReport = await CompareTextures(packAssets, assets.Textures, _textureBlacklist, reportPath);
+
+			Console.WriteLine($"Missing textures for {pack.Name} - {branch.Name}: {packReport.MissingTotal}");
+			await packReport.GenerateReport(reportPath);
+		}
+
+		private List<string> GetAllTextures(string path)
+		{
+			string[] pngFiles = Directory.GetFiles(path, "*.png", SearchOption.AllDirectories);
+			return pngFiles.Select(file => file.Replace("/", "\\").Replace(path, "").Replace("\\", "/").TrimStart('/')).ToList();
+		}
+
+		private async Task<PackReport> CompareTextures(List<string> packFiles, List<string> refFiles, List<string> blacklist, string reportPath)
+		{
+			PackReport packReport = new PackReport();
+
+			// Run through all of the reference (MC) textures
+			Task refTask = Task.Run(() =>
+			{
+				refFiles.ForEach(x =>
+				{
+					if (!blacklist.Any(rule => Regex.IsMatch(x, rule)))
+					{
+						packReport.TotalTextures++;
+						if (packFiles.Contains(x))
+							packReport.MatchingTextures.Add(x); // Pack contains this texture
+						else
+							packReport.MissingTextures.Add(x); // Pack doesn't contain this texture
+					}
+				});
+			});
+
+			// Run through all of the pack textures
+			Task packTask = Task.Run(() =>
+			{
+				packFiles.ForEach(x =>
+				{
+					if (!blacklist.Any(rule => Regex.IsMatch(x, rule)) && !refFiles.Contains(x))
+						packReport.UnusedTextures.Add(x); // MC doesn't contain this texture
+				});
+			});
+			await Task.WhenAll(refTask, packTask); // Run async to improve speed
+			return packReport;
 		}
 
 		private string GetOptifineDirectory(PackBranch branch, string destination)

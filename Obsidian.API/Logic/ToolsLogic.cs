@@ -32,9 +32,9 @@ namespace Obsidian.API.Logic
 			NamingStrategy = new CamelCaseNamingStrategy()
 		};
 
-		public async Task<ResponseModel<MCAssets>> GetMinecraftJavaAssets(string version)
+		public async Task<ResponseModel<MCAssets>> GetMinecraftJavaAssets(string version, bool bypassHighestVersionLimit = false)
 		{
-			List<AssetMCVersion> supportedVersions = await GetJavaMCVersions();
+			List<AssetMCVersion> supportedVersions = await GetJavaMCVersions(bypassHighestVersionLimit);
 
 			return await GetMinecraftAssets(version, MCEdition.Java, supportedVersions);
 		}
@@ -109,7 +109,7 @@ namespace Obsidian.API.Logic
 			return true;
 		}
 
-		public async Task<List<AssetMCVersion>> GetJavaMCVersions()
+		public async Task<List<AssetMCVersion>> GetJavaMCVersions(bool bypassHighestVersionLimit = false)
 		{
 			try
 			{
@@ -137,7 +137,7 @@ namespace Obsidian.API.Logic
 							versions.Add(obj);
 						}
 					});
-				return LimitVersions(versions);
+				return LimitVersions(versions, bypassHighestVersionLimit);
 			}
 			catch (Exception e)
 			{
@@ -262,7 +262,7 @@ namespace Obsidian.API.Logic
 		private string TrimBedrockReleaseId(string releaseName)
 			=> releaseName.TrimStart('v').Replace("-preview", "");
 
-		private List<AssetMCVersion> LimitVersions(List<AssetMCVersion> versions)
+		private List<AssetMCVersion> LimitVersions(List<AssetMCVersion> versions, bool bypassHighestPatchCheck = false)
 		{
 			List<AssetMCVersion> newList = new List<AssetMCVersion>();
 			DateTime OldestDateTime = DateTime.Parse("2013-04-24T15:45:00+00:00");
@@ -271,21 +271,28 @@ namespace Obsidian.API.Logic
 			List<AssetMCVersion> tempList = versions.Where(x => x.ReleaseTime > OldestDateTime)
 				.OrderByDescending(x => x.ReleaseTime).ToList();
 
-			// This logic is very confusing. Limit to the highest patch (MAJOR.MINOR.PATCH) for each MAJOR.MINOR
-			// release (e.g. 1.8.9, 1.17.1), with the exception of the latest snapshot / pre-release / RC.
-			tempList.ToList().ForEach(x =>
+			if (bypassHighestPatchCheck)
 			{
-				List<string> split = x.Id.Split('.').ToList();
-				// Include latest snapshot if it is newer than the latest full-release
-				if ((split.Count == 1 || x.Id.Any(char.IsLetter)) && x.ReleaseTime >= tempList[0].ReleaseTime)
-					newList.Add(x);
-				else
+				newList = tempList;
+			}
+			else
+			{
+				// This logic is very confusing. Limit to the highest patch (MAJOR.MINOR.PATCH) for each MAJOR.MINOR
+				// release (e.g. 1.8.9, 1.17.1), with the exception of the latest snapshot / pre-release / RC.
+				tempList.ToList().ForEach(x =>
 				{
-					List<int> verSplit = split.Select(int.Parse).ToList();
-					if (!newList.Any(y => y.Id.StartsWith($"{verSplit[0]}.{verSplit[1]}") && y.Type == "release"))
+					List<string> split = x.Id.Split('.').ToList();
+					// Include latest snapshot if it is newer than the latest full-release
+					if ((split.Count == 1 || x.Id.Any(char.IsLetter)) && x.ReleaseTime >= tempList[0].ReleaseTime)
 						newList.Add(x);
-				}
-			});
+					else
+					{
+						List<int> verSplit = split.Select(int.Parse).ToList();
+						if (!newList.Any(y => y.Id.StartsWith($"{verSplit[0]}.{verSplit[1]}") && y.Type == "release"))
+							newList.Add(x);
+					}
+				});
+			}
 			return newList;
 		}
 
@@ -418,9 +425,9 @@ namespace Obsidian.API.Logic
 
 	public interface IToolsLogic
 	{
-		Task<List<AssetMCVersion>> GetJavaMCVersions();
+		Task<List<AssetMCVersion>> GetJavaMCVersions(bool bypassHighestVersionLimit = false);
 		Task<List<AssetMCVersion>> GetBedrockMCVersions();
-		Task<ResponseModel<MCAssets>> GetMinecraftJavaAssets(string version);
+		Task<ResponseModel<MCAssets>> GetMinecraftJavaAssets(string version, bool bypassHighestVersionLimit = false);
 		Task<ResponseModel<MCAssets>> GetMinecraftBedrockAssets(string version);
 		Task<bool> PregenetateJavaAssets(List<AssetMCVersion>? versions = null);
 		Task<bool> PregenetateBedrockAssets(List<AssetMCVersion>? versions = null);

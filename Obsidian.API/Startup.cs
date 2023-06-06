@@ -46,7 +46,7 @@ namespace Obsidian.API
 			services.AddSingleton<IMongoClient>(_ =>
 			{
 				MongoClientSettings? clientSettings = MongoClientSettings.FromConnectionString(Configuration.GetConnectionString("MongoDb"));
-				clientSettings.MaxConnectionPoolSize = 250;
+				clientSettings.MaxConnectionPoolSize = 500;
 				return new MongoClient(clientSettings);
 			});
 
