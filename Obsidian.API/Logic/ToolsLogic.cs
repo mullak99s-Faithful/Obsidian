@@ -384,7 +384,7 @@ namespace Obsidian.API.Logic
 			MCAssets mcAssets = new MCAssets();
 
 			Guid downloadFolder = Guid.NewGuid();
-			string assetGenPath = Path.Combine(Directory.GetCurrentDirectory(), "assetgen");
+			string assetGenPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AssetGeneration");
 			string path = Path.Combine(assetGenPath, downloadFolder.ToString());
 			Directory.CreateDirectory(path);
 			string file = Path.Combine(path, "temp.zip");

@@ -116,14 +116,49 @@ namespace Obsidian.API.Logic
 			foreach(PackBranch branch in pack.Branches)
 				supportedAssets.AddRange(texMap.Assets.Where(x => x.TexturePaths.Any(y => y.MCVersion.IsMatchingVersion(branch.Version))));
 
+			supportedAssets = supportedAssets.Distinct().ToList();
+
 			foreach (TextureAsset asset in supportedAssets)
-				await _continuousPackLogic.AddTexture(pack, asset);
+				await _continuousPackLogic.AddTexture(pack, asset); // Don't run in parallel to avoid MongoDB connection limits. Could do with a way around this since its slow atm.
+
+			List<Task> tasks = new();
 
 			// Models
+			if (pack.ModelMappingsId != null)
+			{
+				ModelMapping? modelMap = await _modelMapRepository.GetModelMappingById(pack.ModelMappingsId.Value);
+				if (modelMap != null)
+				{
+					List<ModelAsset> supportedModels = new();
+					foreach (PackBranch branch in pack.Branches)
+						supportedModels.AddRange(modelMap.Models.FindAll(x => x.MCVersion.IsMatchingVersion(branch.Version)));
+
+					tasks.AddRange(supportedModels.Distinct().Select(asset => _continuousPackLogic.AddModel(pack, asset, supportedAssets)));
+				}
+			}
 
 			// Blockstates
+			if (pack.BlockStateMappingsId != null)
+			{
+				BlockStateMapping? blockStateMap = await _blockStateMapRepository.GetBlockStateMappingById(pack.BlockStateMappingsId.Value);
+				if (blockStateMap != null)
+				{
+					List<BlockState> supportedBlockStates = new();
+					foreach (PackBranch branch in pack.Branches)
+						supportedBlockStates.AddRange(blockStateMap.Models.FindAll(x => x.MCVersion.IsMatchingVersion(branch.Version)));
+
+					tasks.AddRange(supportedBlockStates.Distinct().Select(asset => _continuousPackLogic.AddBlockState(pack, asset)));
+				}
+			}
 
 			// Misc
+			tasks.Add(_continuousPackLogic.AddMisc(pack));
+
+			// Automation
+			tasks.Add(_continuousPackLogic.PackAutomation(pack));
+
+			await Task.WhenAll(tasks);
+			await _continuousPackLogic.PackValidation(pack);
 
 			Console.WriteLine($"Finished full pack check for {pack.Name}!");
 		}
@@ -342,7 +377,6 @@ namespace Obsidian.API.Logic
 
 			foreach (MiscAsset? asset in downloadTasks.Select(task => task.Result).Where(x => x != null && x.MCVersion.IsMatchingVersion(branch.Version)))
 				await asset!.Extract(destination);
-
 		}
 
 		private async Task PackAutomation(Pack pack, PackBranch branch, string destination)

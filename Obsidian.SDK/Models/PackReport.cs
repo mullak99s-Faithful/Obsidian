@@ -17,10 +17,10 @@ namespace Obsidian.SDK.Models
 			=> UnusedTextures.Count;
 
 		public string MatchingTotal
-			=> $"{Matching} / {TotalTextures} {Math.Round(((double)Matching / TotalTextures) * 100, 2)}%";
+			=> $"{Matching} / {TotalTextures} ({Math.Round(((double)Matching / TotalTextures) * 100, 2)}%)";
 
 		public string MissingTotal
-			=> $"{Missing} / {TotalTextures} {Math.Round(((double)Missing / TotalTextures) * 100, 2)}%";
+			=> $"{Missing} / {TotalTextures} ({Math.Round(((double)Missing / TotalTextures) * 100, 2)}%)";
 
 		public async Task GenerateReport(string pathAndFileName)
 		{
@@ -28,11 +28,11 @@ namespace Obsidian.SDK.Models
 			sb.AppendLine($"Matching: {MatchingTotal}");
 			sb.AppendLine($"Missing: {MissingTotal}");
 			sb.AppendLine($"Unused: {Unused}");
-			sb.AppendLine();
+			sb.AppendLine("------------------------------\n");
 			sb.AppendLine("Missing Textures:");
 			foreach (var texture in MissingTextures)
 				sb.AppendLine(texture);
-			sb.AppendLine();
+			sb.AppendLine("------------------------------\n");
 			sb.AppendLine("Unused Textures:");
 			foreach (var texture in UnusedTextures)
 				sb.AppendLine(texture);
