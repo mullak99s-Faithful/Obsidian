@@ -3,7 +3,6 @@ using Obsidian.SDK.Models;
 using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 using Obsidian.SDK.Models.Tools;
-using Octokit;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -20,6 +19,7 @@ namespace Obsidian.API.Logic
 		private readonly IPackPngLogic _packPngLogic;
 		private readonly IToolsLogic _toolsLogic;
 
+		// TODO: Move this to its own logic class?
 		private readonly List<string> _textureBlacklist = new()
 		{
 			@"assets\/minecraft\/optifine",
@@ -263,12 +263,14 @@ namespace Obsidian.API.Logic
 			await packReport.GenerateReport(reportPath);
 		}
 
+		// TODO: Move this to its own logic class?
 		private List<string> GetAllTextures(string path)
 		{
 			string[] pngFiles = Directory.GetFiles(path, "*.png", SearchOption.AllDirectories);
 			return pngFiles.Select(file => file.Replace("/", "\\").Replace(path, "").Replace("\\", "/").TrimStart('/')).ToList();
 		}
 
+		// TODO: Move this to its own logic class?
 		private async Task<PackReport> CompareTextures(List<string> packFiles, List<string> refFiles)
 		{
 			PackReport packReport = new PackReport();

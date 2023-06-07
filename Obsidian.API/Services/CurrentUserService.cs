@@ -1,16 +1,12 @@
 ﻿using System.Security.Claims;
 using Auth0.ManagementApi;
-using Auth0.ManagementApi.Models;
 using Newtonsoft.Json.Linq;
 using Obsidian.API.Abstractions;
 
 namespace Obsidian.API.Services
 {
 	public interface ICurrentUserService
-	{
-		public Task<string[]> GetCurrentDiscordRolesAsync(string userId);
-		public Task<Dictionary<string, string[]>> GetAllDiscordRolesAsync();
-	}
+	{ }
 
 	public class CurrentUserService : ICurrentUserService, IRoleValidator, IPermissionValidator
 	{
@@ -21,32 +17,6 @@ namespace Obsidian.API.Services
 		{
 			_managementApiClient = managementApiClient;
 			_auth0ManagementApiAudience = auth0ManagementApiAudience;
-		}
-
-		public async Task<string[]> GetCurrentDiscordRolesAsync(string userId)
-		{
-			var user = await _managementApiClient.Users.GetAsync(userId, "app_metadata");
-
-			var appMetadata = user.AppMetadata.ToJObject();
-			return appMetadata["discord_roles"]?.ToObject<string[]>();
-		}
-
-		public async Task<Dictionary<string, string[]>> GetAllDiscordRolesAsync()
-		{
-			var users = await _managementApiClient.Users.GetAllAsync(new GetUsersRequest
-			{
-				IncludeFields = true,
-				Fields = "app_metadata"
-			});
-
-			var result = new Dictionary<string, string[]>();
-			foreach (var user in users)
-			{
-				var appMetadata = user.AppMetadata.ToJObject();
-				result[user.UserId] = appMetadata["discord_roles"]?.ToObject<string[]>();
-			}
-
-			return result;
 		}
 
 		public static async Task<CurrentUserService> CreateAsync(IConfiguration configuration)

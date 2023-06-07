@@ -41,7 +41,7 @@ namespace Obsidian.API
 
 				operation.Security = new List<OpenApiSecurityRequirement>
 				{
-					new OpenApiSecurityRequirement
+					new()
 					{
 						[ jwtAuthScheme ] = new List<string>()
 					}
