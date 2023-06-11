@@ -115,10 +115,10 @@ namespace Obsidian.API.Repository
 				var update = Builders<TextureMapping>.Update.Set(t => t.Name, newName);
 				var updated = await _collection.UpdateOneAsync(filter, update);
 
-				if (updated.IsAcknowledged)
+				if (updated.IsModifiedCountAvailable)
 					_cache.Remove(id);
 
-				return updated.IsAcknowledged;
+				return updated.IsModifiedCountAvailable;
 			}
 			catch (Exception)
 			{
@@ -136,10 +136,10 @@ namespace Obsidian.API.Repository
 			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
 			var updated = await _collection.UpdateOneAsync(filter, update);
 
-			if (updated.IsAcknowledged)
+			if (updated.IsModifiedCountAvailable)
 				_cache.Remove(textureMapId);
 
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 
 		public async Task<bool> EditTexture(TextureAsset asset, Guid modelId, Guid textureMapId)
@@ -156,10 +156,10 @@ namespace Obsidian.API.Repository
 			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
 			var updated = await _collection.UpdateOneAsync(filter, update);
 
-			if (updated.IsAcknowledged)
+			if (updated.IsModifiedCountAvailable)
 				_cache.Remove(textureMapId);
 
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 
 		public async Task<bool> DeleteTexture(Guid modelId, Guid textureMapId)
@@ -176,10 +176,10 @@ namespace Obsidian.API.Repository
 			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
 			var updated = await _collection.UpdateOneAsync(filter, update);
 
-			if (updated.IsAcknowledged)
+			if (updated.IsModifiedCountAvailable)
 				_cache.Remove(textureMapId);
 
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 
 		public async Task<bool> ClearAssets(Guid textureMapId)
@@ -193,10 +193,10 @@ namespace Obsidian.API.Repository
 			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
 			var updated = await _collection.UpdateOneAsync(filter, update);
 
-			if (updated.IsAcknowledged)
+			if (updated.IsModifiedCountAvailable)
 				_cache.Remove(textureMapId);
 
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 
 		public async Task<bool> ReplaceAssets(Guid textureMapId, List<TextureAsset> textureAssets)
@@ -210,10 +210,10 @@ namespace Obsidian.API.Repository
 			var update = Builders<TextureMapping>.Update.Set(t => t.Assets, existingMap.Assets);
 			var updated = await _collection.UpdateOneAsync(filter, update);
 
-			if (updated.IsAcknowledged)
+			if (updated.IsModifiedCountAvailable)
 				_cache.Remove(textureMapId);
 
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 		#endregion
 
@@ -225,10 +225,10 @@ namespace Obsidian.API.Repository
 				var filter = Builders<TextureMapping>.Filter.Eq(t => t.Id, id);
 				var deleted = await _collection.DeleteOneAsync(filter);
 
-				if (deleted.IsAcknowledged)
+				if (deleted.DeletedCount > 0)
 					_cache.Remove(id);
 
-				return deleted.IsAcknowledged;
+				return deleted.DeletedCount > 0;
 			}
 			catch (Exception)
 			{

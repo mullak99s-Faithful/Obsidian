@@ -62,10 +62,10 @@ namespace Obsidian.API.Repository
 					filterBuilder.Eq(t => t.Version, assetVersion)
 				);
 				var deleted = await _collection.DeleteOneAsync(filter);
-				if (deleted.IsAcknowledged)
+				if (deleted.DeletedCount > 0)
 					_cache.Remove(name, edition, assetVersion);
 
-				return deleted.IsAcknowledged;
+				return deleted.DeletedCount > 0;
 			}
 			catch (Exception)
 			{

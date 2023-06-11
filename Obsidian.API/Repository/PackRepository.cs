@@ -126,7 +126,7 @@ namespace Obsidian.API.Repository
 
 				var update = Builders<Pack>.Update.Combine(updateDefinitions);
 				var updated = await _collection.UpdateOneAsync(filter, update);
-				return updated.IsAcknowledged;
+				return updated.IsModifiedCountAvailable;
 			}
 			catch (Exception)
 			{
@@ -141,7 +141,7 @@ namespace Obsidian.API.Repository
 				var filter = Builders<Pack>.Filter.Eq(p => p.Id, id);
 				var update = Builders<Pack>.Update.Push(p => p.Branches, branch);
 				var updated = await _collection.UpdateOneAsync(filter, update);
-				return updated.IsAcknowledged;
+				return updated.IsModifiedCountAvailable;
 			}
 			catch (Exception)
 			{
@@ -155,7 +155,7 @@ namespace Obsidian.API.Repository
 			{
 				var filter = Builders<Pack>.Filter.Eq(p => p.Id, id);
 				var deleted = await _collection.DeleteOneAsync(filter);
-				return deleted.IsAcknowledged;
+				return deleted.DeletedCount > 0;
 			}
 			catch (Exception)
 			{
@@ -170,7 +170,7 @@ namespace Obsidian.API.Repository
 				var filter = Builders<Pack>.Filter.Eq(p => p.Id, packId);
 				var update = Builders<Pack>.Update.PullFilter(p => p.Branches, b => b.Id == branchId);
 				var updated = await _collection.UpdateOneAsync(filter, update);
-				return updated.IsAcknowledged;
+				return updated.IsModifiedCountAvailable;
 			}
 			catch (Exception)
 			{

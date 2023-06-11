@@ -115,7 +115,7 @@ namespace Obsidian.API.Repository
 				var filter = Builders<BlockStateMapping>.Filter.Eq(t => t.Id, id);
 				var update = Builders<BlockStateMapping>.Update.Set(t => t.Name, newName);
 				var updated = await _collection.UpdateOneAsync(filter, update);
-				return updated.IsAcknowledged;
+				return updated.IsModifiedCountAvailable;
 			}
 			catch (Exception)
 			{
@@ -132,7 +132,7 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<BlockStateMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 
 		public async Task<bool> EditBlockState(BlockState asset, Guid blockStateId, Guid blockStateMapId)
@@ -148,7 +148,7 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<BlockStateMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 
 		public async Task<bool> DeleteBlockState(Guid blockStateId, Guid blockStateMapId)
@@ -164,7 +164,7 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<BlockStateMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 
 		public async Task<bool> ClearBlockStates(Guid blockStateMapId)
@@ -177,7 +177,7 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<BlockStateMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 
 		public async Task<bool> ReplaceBlockStates(Guid blockStateMapId, List<BlockState> blockStates)
@@ -190,7 +190,7 @@ namespace Obsidian.API.Repository
 
 			var update = Builders<BlockStateMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 		#endregion
 
@@ -201,7 +201,7 @@ namespace Obsidian.API.Repository
 			{
 				var filter = Builders<BlockStateMapping>.Filter.Eq(t => t.Id, id);
 				var deleted = await _collection.DeleteOneAsync(filter);
-				return deleted.IsAcknowledged;
+				return deleted.DeletedCount > 0;
 			}
 			catch (Exception)
 			{

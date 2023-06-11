@@ -202,10 +202,10 @@ namespace Obsidian.API.Repository
 				var update = Builders<ModelMapping>.Update.Set(t => t.Name, newName);
 				var updated = await _collection.UpdateOneAsync(filter, update);
 
-				if (updated.IsAcknowledged)
+				if (updated.IsModifiedCountAvailable)
 					_cache.Remove(id);
 
-				return updated.IsAcknowledged;
+				return updated.IsModifiedCountAvailable;
 			}
 			catch (Exception)
 			{
@@ -224,10 +224,10 @@ namespace Obsidian.API.Repository
 			var update = Builders<ModelMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
 
-			if (updated.IsAcknowledged)
+			if (updated.IsModifiedCountAvailable)
 				_cache.Remove(modelMapId);
 
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 
 		public async Task<bool> EditModel(BlockModel asset, Guid modelId, Guid modelMapId)
@@ -244,10 +244,10 @@ namespace Obsidian.API.Repository
 			var update = Builders<ModelMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
 
-			if (updated.IsAcknowledged)
+			if (updated.IsModifiedCountAvailable)
 				_cache.Remove(modelMapId);
 
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 
 		public async Task<bool> DeleteModel(Guid modelId, Guid modelMapId)
@@ -264,10 +264,10 @@ namespace Obsidian.API.Repository
 			var update = Builders<ModelMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
 
-			if (updated.IsAcknowledged)
+			if (updated.IsModifiedCountAvailable)
 				_cache.Remove(modelMapId);
 
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 
 		public async Task<bool> ClearModels(Guid modelMapId)
@@ -281,10 +281,10 @@ namespace Obsidian.API.Repository
 			var update = Builders<ModelMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
 
-			if (updated.IsAcknowledged)
+			if (updated.IsModifiedCountAvailable)
 				_cache.Remove(modelMapId);
 
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 
 		public async Task<bool> ReplaceModels(Guid modelMapId, List<ModelAsset> modelAssets)
@@ -298,10 +298,10 @@ namespace Obsidian.API.Repository
 			var update = Builders<ModelMapping>.Update.Set(t => t.Models, existingMap.Models);
 			var updated = await _collection.UpdateOneAsync(filter, update);
 
-			if (updated.IsAcknowledged)
+			if (updated.IsModifiedCountAvailable)
 				_cache.Remove(modelMapId);
 
-			return updated.IsAcknowledged;
+			return updated.IsModifiedCountAvailable;
 		}
 		#endregion
 
@@ -312,7 +312,7 @@ namespace Obsidian.API.Repository
 			{
 				var filter = Builders<ModelMapping>.Filter.Eq(t => t.Id, id);
 				var deleted = await _collection.DeleteOneAsync(filter);
-				return deleted.IsAcknowledged;
+				return deleted.DeletedCount > 0;
 			}
 			catch (Exception)
 			{
