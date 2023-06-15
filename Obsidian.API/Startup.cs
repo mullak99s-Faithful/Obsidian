@@ -3,6 +3,7 @@ using MongoDB.Driver;
 using Obsidian.API.Abstractions;
 using Obsidian.API.Cache;
 using Obsidian.API.Extensions;
+using Obsidian.API.Git;
 using Obsidian.API.Logic;
 using Obsidian.API.Repository;
 using Obsidian.API.Services;
@@ -56,11 +57,19 @@ namespace Obsidian.API
 				return database;
 			});
 
-			var githubClient = new GitHubClient(new ProductHeaderValue("obsidianapi"))
+			var gitOptions = new GitOptions
 			{
-				Credentials = new Credentials(Configuration["Tokens:GitHub"])
+				PersonalAccessToken = Configuration["Tokens:GitHub"],
+				AuthorName = Configuration["Common:Name"],
+				AuthorEmail = Configuration["Common:Email"]
 			};
 
+			var githubClient = new GitHubClient(new ProductHeaderValue(Configuration["Common:UserAgent"]))
+			{
+				Credentials = new Credentials(gitOptions.PersonalAccessToken)
+			};
+
+			services.AddSingleton<IGitOptions>(gitOptions);
 			services.AddSingleton<IGitHubClient>(githubClient);
 
 			// Cache

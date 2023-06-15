@@ -25,7 +25,7 @@ namespace Obsidian.API.Logic
 
 			List<Task> tasks = new()
 			{
-				_packRepository.UpdatePackById(pack.Id, null, null, null, null, null, pack.MiscAssetIds, null, null),
+				_packRepository.UpdatePackById(pack.Id, null, null, null, null, null, pack.MiscAssetIds, null, null, null),
 				_miscBucket.UploadMisc(miscAsset, overwrite)
 			};
 			await Task.WhenAll(tasks);
@@ -50,7 +50,7 @@ namespace Obsidian.API.Logic
 		private async Task RemoveMiscIdFromPack(Pack pack, Guid assetId)
 		{
 			pack.MiscAssetIds.Remove(assetId);
-			await _packRepository.UpdatePackById(pack.Id, null, null, null, null, null, pack.MiscAssetIds, null, null);
+			await _packRepository.UpdatePackById(pack.Id, null, null, null, null, null, pack.MiscAssetIds, null, null, null);
 		}
 	}
 

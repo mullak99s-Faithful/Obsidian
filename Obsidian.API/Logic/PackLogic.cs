@@ -88,6 +88,14 @@ namespace Obsidian.API.Logic
 			return success;
 		}
 
+		public async Task ManualPush(Guid packId)
+		{
+			Pack? pack = await _packRepository.GetPackById(packId);
+			if (pack == null)
+				return;
+			_continuousPackLogic.CommitPack(pack);
+		}
+
 		public async Task TriggerPackCheck(Guid packId, bool doFullCheck = false)
 		{
 			Pack? pack = await _packRepository.GetPackById(packId);
@@ -159,6 +167,8 @@ namespace Obsidian.API.Logic
 
 			await Task.WhenAll(tasks);
 			await _continuousPackLogic.PackValidation(pack);
+
+			_continuousPackLogic.CommitPack(pack);
 
 			Console.WriteLine($"Finished full pack check for {pack.Name}!");
 		}
@@ -486,6 +496,7 @@ namespace Obsidian.API.Logic
 		Task<bool> DeleteBranch(Pack pack, PackBranch branch);
 		Task ImportPack(MinecraftVersion version, List<Guid> packIds, IFormFile packFile, bool overwrite);
 		void GeneratePacks(List<Guid> packIds);
+		Task ManualPush(Guid packId);
 		Task TriggerPackCheck(Guid packId, bool doFullCheck = false);
 	}
 }

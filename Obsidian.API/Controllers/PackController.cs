@@ -91,7 +91,7 @@ namespace Obsidian.API.Controllers
 		[HttpPost("Edit/{id}")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:edit-pack")]
-		public async Task<IActionResult> EditPack([FromRoute] Guid id, string? name, string? description, Guid? textureMappingId, Guid? modelMappingId, Guid? blockStateMappingId, bool? emissives, string? emissiveSuffix)
+		public async Task<IActionResult> EditPack([FromRoute] Guid id, string? name, string? description, Guid? textureMappingId, Guid? modelMappingId, Guid? blockStateMappingId, bool? emissives, string? emissiveSuffix, string? gitRepoUrl)
 		{
 			if (textureMappingId != null)
 			{
@@ -111,7 +111,7 @@ namespace Obsidian.API.Controllers
 					return NotFound("Invalid block state map!");
 			}
 
-			bool success = await _packRepository.UpdatePackById(id, name, textureMappingId, modelMappingId, blockStateMappingId, description, null, emissives, emissiveSuffix);
+			bool success = await _packRepository.UpdatePackById(id, name, textureMappingId, modelMappingId, blockStateMappingId, description, null, emissives, emissiveSuffix, gitRepoUrl);
 			if (!success)
 				return BadRequest();
 			return Ok();
@@ -191,6 +191,15 @@ namespace Obsidian.API.Controllers
 		public IActionResult DoPackCheck(Guid packId, bool fullCheck = false)
 		{
 			Task.Run(() => _ = _packLogic.TriggerPackCheck(packId, fullCheck)); // Run in the background
+			return Ok();
+		}
+
+		[HttpGet("Triggers/ManualPush")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		[Authorize("write:generate-packs")]
+		public IActionResult DoManualPush(Guid packId)
+		{
+			Task.Run(() => _ = _packLogic.ManualPush(packId)); // Run in the background
 			return Ok();
 		}
 	}

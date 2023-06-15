@@ -93,7 +93,7 @@ namespace Obsidian.API.Repository
 			return document["Name"].AsString;
 		}
 
-		public async Task<bool> UpdatePackById(Guid id, string? newName, Guid? newTexMap, Guid? newModelMap, Guid? newBlockStateMap, string? newDesc, List<Guid>? miscAssets, bool? emissives, string? emissiveSuffix)
+		public async Task<bool> UpdatePackById(Guid id, string? newName, Guid? newTexMap, Guid? newModelMap, Guid? newBlockStateMap, string? newDesc, List<Guid>? miscAssets, bool? emissives, string? emissiveSuffix, string? gitRepoUrl)
 		{
 			try
 			{
@@ -123,6 +123,9 @@ namespace Obsidian.API.Repository
 
 				if (!string.IsNullOrWhiteSpace(emissiveSuffix))
 					updateDefinitions.Add(Builders<Pack>.Update.Set(p => p.EmissiveSuffix, emissiveSuffix));
+
+				if (!string.IsNullOrWhiteSpace(gitRepoUrl))
+					updateDefinitions.Add(Builders<Pack>.Update.Set(p => p.GitRepoUrl, gitRepoUrl));
 
 				var update = Builders<Pack>.Update.Combine(updateDefinitions);
 				var updated = await _collection.UpdateOneAsync(filter, update);
@@ -192,7 +195,7 @@ namespace Obsidian.API.Repository
 		Task<string> GetPackNameById(Guid id);
 
 		// Update
-		Task<bool> UpdatePackById(Guid id, string? newName, Guid? newTexMap, Guid? newModelMap, Guid? newBlockStateMap, string? newDesc, List<Guid>? miscAssets, bool? emissives, string? emissiveSuffix);
+		Task<bool> UpdatePackById(Guid id, string? newName, Guid? newTexMap, Guid? newModelMap, Guid? newBlockStateMap, string? newDesc, List<Guid>? miscAssets, bool? emissives, string? emissiveSuffix, string? gitRepoUrl);
 		Task<bool> AddBranch(Guid id, PackBranch branch);
 
 		// Delete

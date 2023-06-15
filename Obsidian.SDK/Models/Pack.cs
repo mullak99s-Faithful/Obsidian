@@ -14,6 +14,7 @@ namespace Obsidian.SDK.Models
 		public bool EnableEmissives { get; set; }
 		public string EmissiveSuffix { get; set; } = "_e";
 		public string Description { get; set; }
+		public string? GitRepoUrl { get; set; }
 
 		public Pack(string name, string description, Guid textureMappingsId, Guid? modelMappingsId, Guid? blockStateMappingsId, bool enableEmissives = false, string emissiveSuffix = "_e") : this()
 		{
@@ -41,6 +42,9 @@ namespace Obsidian.SDK.Models
 			};
 			return JsonSerializer.Serialize(wrapper, options);
 		}
+
+		public bool UseGit()
+			=> !string.IsNullOrWhiteSpace(GitRepoUrl);
 	}
 
 	public class PackWrapper

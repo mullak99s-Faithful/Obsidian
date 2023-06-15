@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualBasic.CompilerServices;
-using Obsidian.SDK.Enums;
+﻿using Obsidian.SDK.Enums;
 using Obsidian.SDK.Extensions;
 
 namespace Obsidian.SDK.Models

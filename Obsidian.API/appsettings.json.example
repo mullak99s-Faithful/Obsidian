@@ -17,5 +17,10 @@
     "Tokens": {
         "GitHub": "<GitHubToken>"
     },
+    "Common": {
+        "Name": "Obsidian API",
+        "Email": "<Email>",
+        "UserAgent": "obsidian-api"
+    },
     "AllowedHosts": "*"
 }
