@@ -126,7 +126,7 @@ namespace Obsidian.API.Controllers
 		{
 			try
 			{
-				return Ok(await _toolsLogic.PregenetateJavaAssets());
+				return Ok(await _toolsLogic.PregenerateJavaAssets());
 			}
 			catch (Exception ex)
 			{
@@ -141,7 +141,7 @@ namespace Obsidian.API.Controllers
 		{
 			try
 			{
-				return Ok(await _toolsLogic.PregenetateBedrockAssets());
+				return Ok(await _toolsLogic.PregenerateBedrockAssets());
 			}
 			catch (Exception ex)
 			{

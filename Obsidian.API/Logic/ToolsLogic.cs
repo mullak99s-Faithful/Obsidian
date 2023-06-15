@@ -9,7 +9,6 @@ using Obsidian.API.Repository;
 using Obsidian.SDK;
 using Obsidian.SDK.Enums;
 using FileMode = System.IO.FileMode;
-using System;
 
 namespace Obsidian.API.Logic
 {
@@ -29,7 +28,7 @@ namespace Obsidian.API.Logic
 			_httpClient = httpClient;
 		}
 
-		private readonly DefaultContractResolver contractResolver = new DefaultContractResolver
+		private readonly DefaultContractResolver contractResolver = new()
 		{
 			NamingStrategy = new CamelCaseNamingStrategy()
 		};
@@ -58,13 +57,13 @@ namespace Obsidian.API.Logic
 				jUrl = await GetJarDownload(mcVer);
 
 			if (string.IsNullOrWhiteSpace(jUrl))
-				return new ResponseModel<string>
+				return new()
 				{
 					IsSuccess = false,
 					Message = "Invalid version"
 				};
 
-			return new ResponseModel<string>()
+			return new()
 			{
 				IsSuccess = true,
 				Data = jUrl
@@ -89,7 +88,7 @@ namespace Obsidian.API.Logic
 			await Utils.ProcessTasksInBatches(removeTasks);
 		}
 
-		public async Task<bool> PregenetateJavaAssets(List<AssetMCVersion>? versions = null)
+		public async Task<bool> PregenerateJavaAssets(List<AssetMCVersion>? versions = null)
 		{
 			if (versions == null || versions.Count == 0)
 				versions = await GetJavaMCVersions();
@@ -100,7 +99,7 @@ namespace Obsidian.API.Logic
 			return true;
 		}
 
-		public async Task<bool> PregenetateBedrockAssets(List<AssetMCVersion>? versions = null)
+		public async Task<bool> PregenerateBedrockAssets(List<AssetMCVersion>? versions = null)
 		{
 			if (versions == null || versions.Count == 0)
 				versions = await GetBedrockMCVersions();
@@ -127,7 +126,7 @@ namespace Obsidian.API.Logic
 				string latestRelease = latestReleaseT != null ? latestReleaseT.ToString() : "";
 				string latestSnapshot = latestSnapshotT != null ? latestSnapshotT.ToString() : "";
 
-				List<AssetMCVersion> versions = new List<AssetMCVersion>();
+				List<AssetMCVersion> versions = new();
 				json.SelectTokens($"$.versions[?(@.type == 'release' || @.id == '{latestSnapshot}' || @.id == '{latestRelease}')]")
 					.ToList().ForEach(x =>
 					{
@@ -151,13 +150,13 @@ namespace Obsidian.API.Logic
 		{
 			try
 			{
-				List<AssetMCVersion> versions = new List<AssetMCVersion>();
+				List<AssetMCVersion> versions = new();
 				var allReleases = await _client.Repository.Release.GetAll("Mojang", "bedrock-samples");
 
 				Release? preRelease = allReleases.OrderByDescending(x => x.CreatedAt).FirstOrDefault(x => x.Prerelease);
 				if (preRelease != null)
 				{
-					versions.Add(new AssetMCVersion
+					versions.Add(new()
 					{
 						Id = TrimBedrockReleaseId(preRelease.Name),
 						ReleaseTime = preRelease.CreatedAt.UtcDateTime,
@@ -171,7 +170,7 @@ namespace Obsidian.API.Logic
 				Release? release = allReleases.OrderByDescending(x => x.CreatedAt).FirstOrDefault(x => x.Prerelease == false);
 				if (release != null)
 				{
-					versions.Add(new AssetMCVersion
+					versions.Add(new()
 					{
 						Id = TrimBedrockReleaseId(release.Name),
 						ReleaseTime = release.CreatedAt.UtcDateTime,
@@ -205,7 +204,7 @@ namespace Obsidian.API.Logic
 					MCAssets? data = JsonConvert.DeserializeObject<MCAssets>(existingAsset.JSON);
 					if (data != null)
 					{
-						return new ResponseModel<MCAssets>()
+						return new()
 						{
 							IsSuccess = true,
 							Data = data
@@ -219,7 +218,7 @@ namespace Obsidian.API.Logic
 
 				if (existingAsset == null)
 				{
-					return new ResponseModel<MCAssets>()
+					return new()
 					{
 						IsSuccess = true,
 						Data = await CreateMCVA(mcVer, edition)
@@ -228,14 +227,14 @@ namespace Obsidian.API.Logic
 				MCAssets? data = JsonConvert.DeserializeObject<MCAssets>(existingAsset.JSON);
 				if (data != null)
 				{
-					return new ResponseModel<MCAssets>()
+					return new()
 					{
 						IsSuccess = true,
 						Data = data
 					};
 				}
 			}
-			return new ResponseModel<MCAssets>()
+			return new()
 			{
 				IsSuccess = false,
 				Message = "Could not get the assets for the specified version"
@@ -245,7 +244,7 @@ namespace Obsidian.API.Logic
 		private async Task<MCAssets> CreateMCVA(AssetMCVersion version, MCEdition edition)
 		{
 			MCAssets assets = await GenerateAssets(version, edition);
-			MinecraftVersionAssets mcva = new MinecraftVersionAssets()
+			MinecraftVersionAssets mcva = new()
 			{
 				Name = assets.Name,
 				Version = assets.Version,
@@ -265,7 +264,7 @@ namespace Obsidian.API.Logic
 
 		private List<AssetMCVersion> LimitVersions(List<AssetMCVersion> versions, bool bypassHighestPatchCheck = false)
 		{
-			List<AssetMCVersion> newList = new List<AssetMCVersion>();
+			List<AssetMCVersion> newList = new();
 			DateTime OldestDateTime = DateTime.Parse("2013-04-24T15:45:00+00:00");
 
 			// Select all full-release versions >=1.5.2 (and the latest snapshot)
@@ -339,7 +338,7 @@ namespace Obsidian.API.Logic
 				if (!response.IsSuccessStatusCode) return false;
 
 				Stream stream = await response.Content.ReadAsStreamAsync();
-				await using FileStream fileStream = new FileStream(path, FileMode.Create);
+				await using FileStream fileStream = new(path, FileMode.Create);
 				await stream.CopyToAsync(fileStream);
 				return true;
 			}
@@ -352,7 +351,7 @@ namespace Obsidian.API.Logic
 
 		private List<string> GetFileListFromJar(string jarPath)
 		{
-			List<string> files = new List<string>();
+			List<string> files = new();
 			using ZipArchive zip = ZipFile.OpenRead(jarPath);
 			foreach (var file in zip.Entries)
 			{
@@ -365,7 +364,7 @@ namespace Obsidian.API.Logic
 
 		private List<string> GetFileListFromBedrockZip(string bedrockZip)
 		{
-			List<string> files = new List<string>();
+			List<string> files = new();
 			using ZipArchive zip = ZipFile.OpenRead(bedrockZip);
 			foreach (var file in zip.Entries.Where(x => Regex.IsMatch(x.FullName, BEDROCK_ZIP_REGEX)))
 			{
@@ -379,7 +378,7 @@ namespace Obsidian.API.Logic
 
 		private async Task<MCAssets> GenerateAssets(AssetMCVersion version, MCEdition edition)
 		{
-			MCAssets mcAssets = new MCAssets();
+			MCAssets mcAssets = new();
 
 			Guid downloadFolder = Guid.NewGuid();
 			string assetGenPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AssetGeneration");
@@ -393,12 +392,12 @@ namespace Obsidian.API.Logic
 
 				if (textures is { Count: > 0 })
 				{
-					mcAssets = new MCAssets()
+					mcAssets = new()
 					{
 						Name = version.Id,
 						Version = ASSET_VERSION,
 						CreatedDate = DateTime.UtcNow,
-						Minecraft = new MinecraftRelease()
+						Minecraft = new()
 						{
 							Version = version.Id,
 							Type = version.Type,
@@ -427,8 +426,8 @@ namespace Obsidian.API.Logic
 		Task<List<AssetMCVersion>> GetBedrockMCVersions();
 		Task<ResponseModel<MCAssets>> GetMinecraftJavaAssets(string version, bool bypassHighestVersionLimit = false);
 		Task<ResponseModel<MCAssets>> GetMinecraftBedrockAssets(string version);
-		Task<bool> PregenetateJavaAssets(List<AssetMCVersion>? versions = null);
-		Task<bool> PregenetateBedrockAssets(List<AssetMCVersion>? versions = null);
+		Task<bool> PregenerateJavaAssets(List<AssetMCVersion>? versions = null);
+		Task<bool> PregenerateBedrockAssets(List<AssetMCVersion>? versions = null);
 		Task<ResponseModel<string>> GetMinecraftJavaJar(string version);
 		Task PurgeAssets();
 	}
