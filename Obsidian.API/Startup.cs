@@ -1,4 +1,6 @@
-﻿using Microsoft.OpenApi.Models;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
+using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 using Obsidian.API.Abstractions;
 using Obsidian.API.Cache;
@@ -57,14 +59,23 @@ namespace Obsidian.API
 				return database;
 			});
 
-			var gitOptions = new GitOptions
+			services.AddHttpClient();
+			services.Configure<HttpClientFactoryOptions>(options =>
+			{
+				options.HttpClientActions.Add(client =>
+				{
+					client.DefaultRequestHeaders.Add("User-Agent", Configuration["Common:UserAgent"]);
+				});
+			});
+
+			GitOptions gitOptions = new GitOptions
 			{
 				PersonalAccessToken = Configuration["Tokens:GitHub"],
 				AuthorName = Configuration["Common:Name"],
 				AuthorEmail = Configuration["Common:Email"]
 			};
 
-			var githubClient = new GitHubClient(new ProductHeaderValue(Configuration["Common:UserAgent"]))
+			GitHubClient githubClient = new GitHubClient(new ProductHeaderValue(Configuration["Common:UserAgent"]))
 			{
 				Credentials = new Credentials(gitOptions.PersonalAccessToken)
 			};

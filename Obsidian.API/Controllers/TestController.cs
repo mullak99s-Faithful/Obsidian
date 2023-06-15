@@ -43,7 +43,6 @@ namespace Obsidian.API.Controllers
 		[Authorize]
 		public IActionResult PermissionsTest()
 		{
-			using HttpClient client = new();
 			ClaimsIdentity? claimsIdentity = User.Identity as ClaimsIdentity;
 			Claim[]? permissionClaims = claimsIdentity?.FindAll("permissions").ToArray();
 			List<string> permissions = new();

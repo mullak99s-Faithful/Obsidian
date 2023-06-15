@@ -20,11 +20,13 @@ namespace Obsidian.API.Logic
 
 		private readonly IVersionAssetsRepository _vaRepository;
 		private readonly IGitHubClient _client;
+		private readonly HttpClient _httpClient;
 
-		public ToolsLogic(IVersionAssetsRepository vaRepository, IGitHubClient githubClient)
+		public ToolsLogic(IVersionAssetsRepository vaRepository, IGitHubClient githubClient, HttpClient httpClient)
 		{
 			_vaRepository = vaRepository;
 			_client = githubClient;
+			_httpClient = httpClient;
 		}
 
 		private readonly DefaultContractResolver contractResolver = new DefaultContractResolver
@@ -113,8 +115,7 @@ namespace Obsidian.API.Logic
 		{
 			try
 			{
-				HttpClient httpClient = new HttpClient();
-				using var httpResponse = await httpClient.GetAsync("https://launchermeta.mojang.com/mc/game/version_manifest.json", HttpCompletionOption.ResponseHeadersRead);
+				using var httpResponse = await _httpClient.GetAsync("https://launchermeta.mojang.com/mc/game/version_manifest.json", HttpCompletionOption.ResponseHeadersRead);
 				httpResponse.EnsureSuccessStatusCode();
 
 				var rawJson = await httpResponse.Content.ReadAsStringAsync();
@@ -302,8 +303,7 @@ namespace Obsidian.API.Logic
 				return string.Empty;
 
 			string url = version.Url;
-			HttpClient httpClient = new HttpClient();
-			using var httpResponse = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+			using var httpResponse = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 			httpResponse.EnsureSuccessStatusCode();
 
 			var rawJson = await httpResponse.Content.ReadAsStringAsync();
@@ -334,9 +334,7 @@ namespace Obsidian.API.Logic
 		{
 			try
 			{
-				HttpClient client = new HttpClient();
-				client.DefaultRequestHeaders.Add("User-Agent", "mullak99s-Faithful");
-				HttpResponseMessage response = await client.GetAsync(url);
+				HttpResponseMessage response = await _httpClient.GetAsync(url);
 
 				if (!response.IsSuccessStatusCode) return false;
 
