@@ -1,4 +1,6 @@
-﻿namespace Obsidian.SDK.Models.Assets
+﻿using Obsidian.SDK.Enums;
+
+namespace Obsidian.SDK.Models.Assets
 {
 	public class TextureAsset
 	{
@@ -10,6 +12,17 @@
 		{
 			Names = asset.Names;
 			TexturePaths = asset.TexturePaths;
+		}
+
+		public List<string> GetTexturePathsForVersion(MinecraftVersion version)
+		{
+			List<string> texturePathsForVersion = new List<string>();
+			foreach (Texture texture in TexturePaths)
+			{
+				if (texture.MCVersion.IsMatchingVersion(version))
+					texturePathsForVersion.Add(texture.Path);
+			}
+			return texturePathsForVersion;
 		}
 
 		public override string ToString()

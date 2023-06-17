@@ -114,7 +114,8 @@ namespace Obsidian.API.Logic
 		{
 			try
 			{
-				using var httpResponse = await _httpClient.GetAsync("https://launchermeta.mojang.com/mc/game/version_manifest.json", HttpCompletionOption.ResponseHeadersRead);
+				using var httpClient = new HttpClient();
+				using var httpResponse = await httpClient.GetAsync("https://launchermeta.mojang.com/mc/game/version_manifest.json", HttpCompletionOption.ResponseHeadersRead);
 				httpResponse.EnsureSuccessStatusCode();
 
 				var rawJson = await httpResponse.Content.ReadAsStringAsync();
@@ -302,7 +303,8 @@ namespace Obsidian.API.Logic
 				return string.Empty;
 
 			string url = version.Url;
-			using var httpResponse = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+			using var httpClient = new HttpClient();
+			using var httpResponse = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 			httpResponse.EnsureSuccessStatusCode();
 
 			var rawJson = await httpResponse.Content.ReadAsStringAsync();
@@ -333,7 +335,8 @@ namespace Obsidian.API.Logic
 		{
 			try
 			{
-				HttpResponseMessage response = await _httpClient.GetAsync(url);
+				using var httpClient = new HttpClient();
+				HttpResponseMessage response = await httpClient.GetAsync(url);
 
 				if (!response.IsSuccessStatusCode) return false;
 

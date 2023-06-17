@@ -211,26 +211,31 @@ namespace Obsidian.API.Logic
 
 		public async Task PackAutomation(Pack pack)
 		{
-			Console.WriteLine($"Running automation for {pack.Name}");
+			List<Task> automationTasks = pack.Branches.Select(branch => PackBranchAutomation(pack, branch)).ToList();
+			await Task.WhenAll(automationTasks);
+		}
+
+		public async Task PackBranchAutomation(Pack pack, PackBranch branch)
+		{
+			Console.WriteLine($"Running automation for {pack.Name} - {branch.Name}");
 
 			List<Task> automationTasks = new();
-			foreach (PackBranch branch in pack.Branches)
-			{
-				string destination = GetBranchPath(pack, branch);
-				automationTasks.Add(File.WriteAllTextAsync(Path.Combine(destination, "pack.mcmeta"), pack.CreatePackMCMeta(branch), Encoding.UTF8));  // pack.mcmeta
 
-				// pack.png
-				byte[]? packPng = await _packPngLogic.DownloadPackPng(pack.Id);
-				if (packPng is { Length: > 0 })
-					automationTasks.Add(File.WriteAllBytesAsync(Path.Combine(destination, "pack.png"), packPng));
+			string destination = GetBranchPath(pack, branch);
+			automationTasks.Add(File.WriteAllTextAsync(Path.Combine(destination, "pack.mcmeta"), pack.CreatePackMCMeta(branch), Encoding.UTF8));  // pack.mcmeta
 
-				// Optifine
-				string optifineDirectory = GetOptifineDirectory(pack, branch);
-				Directory.CreateDirectory(optifineDirectory);
+			// pack.png
+			byte[]? packPng = await _packPngLogic.DownloadPackPng(pack.Id);
+			if (packPng is { Length: > 0 })
+				automationTasks.Add(File.WriteAllBytesAsync(Path.Combine(destination, "pack.png"), packPng));
 
-				if (pack.EnableEmissives)
-					automationTasks.Add(File.WriteAllTextAsync(Path.Combine(optifineDirectory, "emissive.properties"), $"suffix.emissive={pack.EmissiveSuffix}"));
-			}
+			// Optifine
+			string optifineDirectory = GetOptifineDirectory(pack, branch);
+			Directory.CreateDirectory(optifineDirectory);
+
+			if (pack.EnableEmissives)
+				automationTasks.Add(File.WriteAllTextAsync(Path.Combine(optifineDirectory, "emissive.properties"), $"suffix.emissive={pack.EmissiveSuffix}"));
+
 			await Task.WhenAll(automationTasks);
 		}
 

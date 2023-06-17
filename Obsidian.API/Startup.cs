@@ -109,6 +109,7 @@ namespace Obsidian.API
 			services.AddScoped<IMiscAssetLogic, MiscAssetLogic>();
 			services.AddScoped<IToolsLogic, ToolsLogic>();
 			services.AddScoped<IContinuousPackLogic, ContinuousPackLogic>();
+			services.AddScoped<IAutoGenerationLogic, AutoGenerationLogic>();
 
 			// Logic (Singleton)
 			services.AddSingleton<IPackValidationLogic, PackValidationLogic>();

@@ -28,7 +28,8 @@ namespace Obsidian.API.Logic
 			@"assets\/realms\/textures\/gui\/realms\/adventure.png",
 			@"assets\/minecraft\/textures\/gui\/presets",
 			@"assets\/minecraft\/textures\/trims\/color_palettes",
-			@"assets\/minecraft\/textures\/entity\/llama\/spit.png"
+			@"assets\/minecraft\/textures\/entity\/llama\/spit.png",
+			@"assets\/minecraft\/textures\/gui\/title"
 		};
 
 		public List<string> GetAllBlacklistRules()

@@ -27,6 +27,7 @@ namespace Obsidian.SDK.Models.Minecraft
 				MinecraftVersion.MC119 => 9,
 				MinecraftVersion.MC1193 => 12,
 				MinecraftVersion.MC1194 => 13,
+				MinecraftVersion.MC120 => 15,
 				_ => throw new ArgumentOutOfRangeException(nameof(version), version, "Unsupported version.")
 			};
 		}
