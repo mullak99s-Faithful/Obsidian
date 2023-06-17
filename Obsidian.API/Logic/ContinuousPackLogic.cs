@@ -7,6 +7,7 @@ using Obsidian.SDK.Models.Tools;
 using System.Security.Cryptography;
 using System.Text;
 using Obsidian.API.Git;
+using Obsidian.SDK.Extensions;
 
 namespace Obsidian.API.Logic
 {
@@ -233,6 +234,10 @@ namespace Obsidian.API.Logic
 			string optifineDirectory = GetOptifineDirectory(pack, branch);
 			Directory.CreateDirectory(optifineDirectory);
 
+			// Meta
+			string readMeText = $"# {pack.Name}\n\n**Minecraft Version:** _{branch.Version.GetEnumDescription()}_";
+			automationTasks.Add(File.WriteAllTextAsync(Path.Combine(destination, "README.md"), readMeText));
+
 			if (pack.EnableEmissives)
 				automationTasks.Add(File.WriteAllTextAsync(Path.Combine(optifineDirectory, "emissive.properties"), $"suffix.emissive={pack.EmissiveSuffix}"));
 
@@ -347,7 +352,7 @@ namespace Obsidian.API.Logic
 		}
 
 		public void CommitPack(Pack pack, string? overrideAutoMessage = null)
-			=> pack.Branches.ForEach(branch => CommitBranch(pack, branch, overrideAutoMessage));
+			=> Parallel.ForEach(pack.Branches, branch => CommitBranch(pack, branch, overrideAutoMessage));
 
 		public void CommitBranch(Pack pack, PackBranch branch, string? overrideAutoMessage = null)
 		{
