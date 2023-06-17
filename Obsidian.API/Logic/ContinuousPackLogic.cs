@@ -6,7 +6,6 @@ using Obsidian.SDK.Models.Mappings;
 using Obsidian.SDK.Models.Tools;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
 using Obsidian.API.Git;
 
 namespace Obsidian.API.Logic
@@ -21,32 +20,17 @@ namespace Obsidian.API.Logic
 		private readonly IMiscBucket _miscBucket;
 		private readonly IPackPngLogic _packPngLogic;
 		private readonly IToolsLogic _toolsLogic;
+		private readonly IPackValidationLogic _packValidationLogic;
 		private readonly IGitOptions _gitOptions;
 
-		// TODO: Move this to its own logic class?
-		private readonly List<string> _textureBlacklist = new()
-		{
-			@"assets\/minecraft\/optifine",
-			@"assets\/\b(?!minecraft\b|realms\b).*?\b",
-			@"textures\/.+\/.+_e(missive)?\.png",
-			@"assets\/minecraft\/optifine",
-			@"textures\/misc",
-			@"textures\/font",
-			@"_MACOSX",
-			@"assets\/minecraft\/textures\/ctm",
-			@"assets\/minecraft\/textures\/custom",
-			@"textures\/colormap",
-			@"background\/panorama_overlay.png",
-			@"assets\/minecraft\/textures\/environment\/clouds.png"
-		};
-
-		public ContinuousPackLogic(ITextureBucket textureBucket, ITextureMapRepository textureMapRepository, IMiscBucket miscBucket, IPackPngLogic packPngLogic, IToolsLogic toolsLogic, IGitOptions gitOptions)
+		public ContinuousPackLogic(ITextureBucket textureBucket, ITextureMapRepository textureMapRepository, IMiscBucket miscBucket, IPackPngLogic packPngLogic, IToolsLogic toolsLogic, IPackValidationLogic packValidationLogic, IGitOptions gitOptions)
 		{
 			_textureBucket = textureBucket;
 			_textureMapRepository = textureMapRepository;
 			_miscBucket = miscBucket;
 			_packPngLogic = packPngLogic;
 			_toolsLogic = toolsLogic;
+			_packValidationLogic = packValidationLogic;
 			_gitOptions = gitOptions;
 
 			_pushOptions = new()
@@ -270,54 +254,12 @@ namespace Obsidian.API.Logic
 
 			string branchPath = GetBranchPath(pack, branch);
 			MCAssets assets = response.Data;
-			List<string> packAssets = GetAllTextures(branchPath);
 			string reportPath = Path.Combine(branchPath, $"Report-{pack.Name}-{branch.Name}.txt");
 
-			PackReport packReport = await CompareTextures(packAssets, assets.Textures);
+			PackReport packReport = await _packValidationLogic.CompareTextures(branchPath, assets.Textures);
 
 			Console.WriteLine($"Missing textures for {pack.Name} - {branch.Name}: {packReport.MissingTotal}");
 			await packReport.GenerateReport(reportPath);
-		}
-
-		// TODO: Move this to its own logic class?
-		private List<string> GetAllTextures(string path)
-		{
-			string[] pngFiles = Directory.GetFiles(path, "*.png", SearchOption.AllDirectories);
-			return pngFiles.Select(file => file.Replace("/", "\\").Replace(path, "").Replace("\\", "/").TrimStart('/')).ToList();
-		}
-
-		// TODO: Move this to its own logic class?
-		private async Task<PackReport> CompareTextures(List<string> packFiles, List<string> refFiles)
-		{
-			PackReport packReport = new PackReport();
-
-			// Run through all of the reference (MC) textures
-			Task refTask = Task.Run(() =>
-			{
-				refFiles.ForEach(x =>
-				{
-					if (!_textureBlacklist.Any(rule => Regex.IsMatch(x, rule)))
-					{
-						packReport.TotalTextures++;
-						if (packFiles.Contains(x))
-							packReport.MatchingTextures.Add(x); // Pack contains this texture
-						else
-							packReport.MissingTextures.Add(x); // Pack doesn't contain this texture
-					}
-				});
-			});
-
-			// Run through all of the pack textures
-			Task packTask = Task.Run(() =>
-			{
-				packFiles.ForEach(x =>
-				{
-					if (!_textureBlacklist.Any(rule => Regex.IsMatch(x, rule)) && !refFiles.Contains(x))
-						packReport.UnusedTextures.Add(x); // MC doesn't contain this texture
-				});
-			});
-			await Task.WhenAll(refTask, packTask); // Run async to improve speed
-			return packReport;
 		}
 
 		private async Task WriteChangedFileBytes(string path, byte[] bytes)

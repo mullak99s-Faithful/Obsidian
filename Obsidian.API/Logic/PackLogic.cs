@@ -7,7 +7,6 @@ using System.IO.Compression;
 using System.Text;
 using Obsidian.SDK.Models.Tools;
 using Pack = Obsidian.SDK.Models.Pack;
-using System.Text.RegularExpressions;
 
 namespace Obsidian.API.Logic
 {
@@ -22,24 +21,9 @@ namespace Obsidian.API.Logic
 		private readonly IMiscBucket _miscBucket;
 		private readonly IToolsLogic _toolsLogic;
 		private readonly IContinuousPackLogic _continuousPackLogic;
+		private readonly IPackValidationLogic _packValidationLogic;
 
-		private readonly List<string> _textureBlacklist = new()
-		{
-			@"assets\/minecraft\/optifine",
-			@"assets\/\b(?!minecraft\b|realms\b).*?\b",
-			@"textures\/.+\/.+_e(missive)?\.png",
-			@"assets\/minecraft\/optifine",
-			@"textures\/misc",
-			@"textures\/font",
-			@"_MACOSX",
-			@"assets\/minecraft\/textures\/ctm",
-			@"assets\/minecraft\/textures\/custom",
-			@"textures\/colormap",
-			@"background\/panorama_overlay.png",
-			@"assets\/minecraft\/textures\/environment\/clouds.png"
-		};
-
-		public PackLogic(IPackPngLogic packPngLogic, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackRepository packRepository, ITextureBucket textureBucket, IMiscBucket miscBucket, IToolsLogic toolsLogic, IContinuousPackLogic continuousPackLogic)
+		public PackLogic(IPackPngLogic packPngLogic, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackRepository packRepository, ITextureBucket textureBucket, IMiscBucket miscBucket, IToolsLogic toolsLogic, IContinuousPackLogic continuousPackLogic, IPackValidationLogic packValidationLogic)
 		{
 			_packPngLogic = packPngLogic;
 			_textureMapRepository = textureMapRepository;
@@ -50,6 +34,7 @@ namespace Obsidian.API.Logic
 			_miscBucket = miscBucket;
 			_toolsLogic = toolsLogic;
 			_continuousPackLogic = continuousPackLogic;
+			_packValidationLogic = packValidationLogic;
 		}
 
 		public async Task<bool> AddPack(Pack pack)
@@ -426,52 +411,12 @@ namespace Obsidian.API.Logic
 			Console.WriteLine($"Running pack validation for {pack.Name} - {branch.Name}");
 
 			MCAssets assets = response.Data;
-			List<string> packAssets = GetAllTextures(packPath);
 			string reportPath = Path.Combine(reportRootPath, $"Report-{pack.Name}-{branch.Name}.txt");
 
-			PackReport packReport = await CompareTextures(packAssets, assets.Textures);
+			PackReport packReport = await _packValidationLogic.CompareTextures(packPath, assets.Textures);
 
 			Console.WriteLine($"Missing textures for {pack.Name} - {branch.Name}: {packReport.MissingTotal}");
 			await packReport.GenerateReport(reportPath);
-		}
-
-		private List<string> GetAllTextures(string path)
-		{
-			string[] pngFiles = Directory.GetFiles(path, "*.png", SearchOption.AllDirectories);
-			return pngFiles.Select(file => file.Replace("/", "\\").Replace(path, "").Replace("\\", "/").TrimStart('/')).ToList();
-		}
-
-		private async Task<PackReport> CompareTextures(List<string> packFiles, List<string> refFiles)
-		{
-			PackReport packReport = new PackReport();
-
-			// Run through all of the reference (MC) textures
-			Task refTask = Task.Run(() =>
-			{
-				refFiles.ForEach(x =>
-				{
-					if (!_textureBlacklist.Any(rule => Regex.IsMatch(x, rule)))
-					{
-						packReport.TotalTextures++;
-						if (packFiles.Contains(x))
-							packReport.MatchingTextures.Add(x); // Pack contains this texture
-						else
-							packReport.MissingTextures.Add(x); // Pack doesn't contain this texture
-					}
-				});
-			});
-
-			// Run through all of the pack textures
-			Task packTask = Task.Run(() =>
-			{
-				packFiles.ForEach(x =>
-				{
-					if (!_textureBlacklist.Any(rule => Regex.IsMatch(x, rule)) && !refFiles.Contains(x))
-						packReport.UnusedTextures.Add(x); // MC doesn't contain this texture
-				});
-			});
-			await Task.WhenAll(refTask, packTask); // Run async to improve speed
-			return packReport;
 		}
 
 		private string GetOptifineDirectory(PackBranch branch, string destination)

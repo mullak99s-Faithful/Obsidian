@@ -110,6 +110,9 @@ namespace Obsidian.API
 			services.AddScoped<IToolsLogic, ToolsLogic>();
 			services.AddScoped<IContinuousPackLogic, ContinuousPackLogic>();
 
+			// Logic (Singleton)
+			services.AddSingleton<IPackValidationLogic, PackValidationLogic>();
+
 			BuildServiceProviderAsync(services).Wait();
 
 			services.AddSwaggerGen(c =>
