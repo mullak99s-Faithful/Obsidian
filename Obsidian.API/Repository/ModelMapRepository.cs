@@ -21,6 +21,7 @@ namespace Obsidian.API.Repository
 		}
 
 		#region Create
+
 		public async Task AddModelMap(ModelMapping modelMapping)
 			=> await _collection.InsertOneAsync(modelMapping);
 		#endregion
@@ -183,7 +184,7 @@ namespace Obsidian.API.Repository
 				var filter = Builders<ModelMapping>.Filter.Eq(t => t.Id, modelMapId);
 
 				var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
-				ModelAsset? existingModel = existingMap.Models.Find(x => (x.Id == model.Id || x.Name == model.Name) && x.MCVersion.DoesOverlap(model.MCVersion));
+				ModelAsset? existingModel = existingMap.Models.Find(x => x.Id == model.Id || (x.FileName == model.FileName && x.Path == model.Path));
 				return existingModel;
 			}
 			catch (Exception)
@@ -226,6 +227,8 @@ namespace Obsidian.API.Repository
 
 			if (updated.IsModifiedCountAvailable)
 				_cache.Remove(modelMapId);
+
+			Console.WriteLine($"Added model {asset}");
 
 			return updated.IsModifiedCountAvailable;
 		}

@@ -42,23 +42,19 @@ namespace Obsidian.API.Logic
 					continue;
 
 				ModelAsset newModel = new(model, new MCVersion(minVersion, maxVersion), name, path, fileName, texMapping.Assets);
-
 				ModelAsset? existingModel = await _modelMapRepository.GetExistingModel(newModel, mapping.Id);
-
-				List<Task> modelTasks = new();
 
 				if (existingModel != null)
 				{
 					if (overwrite)
-						modelTasks.Add(_modelMapRepository.DeleteModel(existingModel.Id, mapping.Id));
+						await _modelMapRepository.DeleteModel(existingModel.Id, mapping.Id);
 					else return false;
 
 					if (!overwriteVersion)
 						newModel.MCVersion = existingModel.MCVersion;
 				}
 
-				modelTasks.Add(_modelMapRepository.AddModel(newModel, mapping.Id));
-				await Task.WhenAll(modelTasks);
+				await _modelMapRepository.AddModel(newModel, mapping.Id);
 			}
 			return true;
 		}

@@ -137,5 +137,10 @@ namespace Obsidian.SDK.Models.Assets
 			}
 			return model.Serialize();
 		}
+
+		public override string ToString()
+		{
+			return $"{Path}\\{FileName}";
+		}
 	}
 }

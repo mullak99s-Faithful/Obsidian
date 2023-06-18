@@ -7,6 +7,7 @@ using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Minecraft;
 using Swashbuckle.AspNetCore.Annotations;
 using System.IO.Compression;
+using Obsidian.API.Extensions;
 
 namespace Obsidian.API.Controllers
 {
@@ -84,7 +85,7 @@ namespace Obsidian.API.Controllers
 						};
 
 						// Include directory name to avoid multiple uses of files like "0.json" causing issues
-						string parentDir = path?.Split('\\', '/').LastOrDefault()?.Trim() ?? string.Empty;
+						string parentDir = path.Split('\\', '/').LastOrDefault()?.Trim() ?? string.Empty;
 						if (!string.IsNullOrWhiteSpace(parentDir) && !ignoreDirs.Contains(parentDir))
 							modelName = $"{parentDir}_{modelName}";
 
@@ -98,7 +99,6 @@ namespace Obsidian.API.Controllers
 						if (blockModel == null)
 							return BadRequest("Invalid model!");
 
-						Console.WriteLine($"FileName: {fileName}, ModelName: {modelName}, Path: {path}");
 						await _logic.AddModel(fileName, modelName, packIdList, blockModel, path, minVersion, maxVersion, overwrite, overwriteVersion);
 					}
 				}

@@ -176,7 +176,7 @@ namespace Obsidian.API.Logic
 				}
 				if (asset.Model == null)
 				{
-					Console.WriteLine($"[ContinuousPackLogic] Broken model asset! {asset.Path}");
+					Console.WriteLine($"[ContinuousPackLogic] Broken model asset! {asset.Path}\\{asset.FileName}");
 					continue;
 				}
 
