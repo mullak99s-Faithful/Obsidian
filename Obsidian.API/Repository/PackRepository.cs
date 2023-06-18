@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using LibGit2Sharp;
+using MongoDB.Driver;
 using Obsidian.SDK.Models;
 using Pack = Obsidian.SDK.Models.Pack;
 
@@ -152,6 +153,43 @@ namespace Obsidian.API.Repository
 			}
 		}
 
+		public async Task<bool> EditBranch(Guid packId, Guid branchId, PackBranch newBranch)
+		{
+			try
+			{
+				Pack? pack = await GetPackById(packId);
+				if (pack == null)
+					return false;
+
+				List<PackBranch> branches = pack.Branches;
+
+				int index = -1;
+				for (int i = 0; i < branches.Count; i++)
+				{
+					if (branches[i].Id == branchId)
+					{
+						index = i;
+						break;
+					}
+				}
+
+				if (index == -1)
+					return false;
+
+				branches.RemoveAt(index);
+				branches.Insert(index, newBranch);
+
+				var filter = Builders<Pack>.Filter.Eq(p => p.Id, packId);
+				var update = Builders<Pack>.Update.Set(p => p.Branches, branches);
+				var updated = await _collection.UpdateOneAsync(filter, update);
+				return updated.IsModifiedCountAvailable;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
+
 		public async Task<bool> DeleteById(Guid id)
 		{
 			try
@@ -197,6 +235,7 @@ namespace Obsidian.API.Repository
 		// Update
 		Task<bool> UpdatePackById(Guid id, string? newName, Guid? newTexMap, Guid? newModelMap, Guid? newBlockStateMap, string? newDesc, List<Guid>? miscAssets, bool? emissives, string? emissiveSuffix, string? gitRepoUrl);
 		Task<bool> AddBranch(Guid id, PackBranch branch);
+		Task<bool> EditBranch(Guid packId, Guid branchId, PackBranch newBranch);
 
 		// Delete
 		Task<bool> DeleteById(Guid id);

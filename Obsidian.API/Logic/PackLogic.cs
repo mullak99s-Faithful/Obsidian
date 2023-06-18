@@ -96,6 +96,7 @@ namespace Obsidian.API.Logic
 			// Full Check
 			if (!doFullCheck)
 			{
+				await _continuousPackLogic.PackValidation(pack);
 				Console.WriteLine($"Finished pack check for {pack.Name}!");
 				return;
 			}
@@ -151,6 +152,7 @@ namespace Obsidian.API.Logic
 			tasks.Add(_continuousPackLogic.PackAutomation(pack));
 
 			await Task.WhenAll(tasks);
+
 			await _continuousPackLogic.PackValidation(pack);
 
 			_continuousPackLogic.CommitPack(pack);

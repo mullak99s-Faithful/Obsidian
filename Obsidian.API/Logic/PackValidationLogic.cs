@@ -51,7 +51,7 @@ namespace Obsidian.API.Logic
 					{
 						packReport.TotalTextures++;
 						if (packFiles.Contains(x))
-							packReport.MatchingTextures.Add(x); // Pack contains this texture
+							packReport.MatchingTexturesCount++; // Pack contains this texture
 						else
 							packReport.MissingTextures.Add(x); // Pack doesn't contain this texture
 					}

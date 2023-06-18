@@ -4,13 +4,15 @@ namespace Obsidian.SDK.Models
 {
 	public class PackReport
 	{
-		public List<string> MatchingTextures { get; set; } = new();
 		public List<string> MissingTextures { get; set; } = new();
 		public List<string> UnusedTextures { get; set; } = new();
+
+		public int MatchingTexturesCount { get; set; } = 0;
+
 		public int TotalTextures { get; set; } = 0;
 
 		public int Matching
-			=> MatchingTextures.Count;
+			=> MatchingTexturesCount;
 		public int Missing
 			=> MissingTextures.Count;
 		public int Unused

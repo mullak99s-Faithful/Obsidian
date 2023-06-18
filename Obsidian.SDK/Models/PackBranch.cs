@@ -8,6 +8,7 @@ namespace Obsidian.SDK.Models
 		public Guid Id { get; set; }
 		public string Name { get; set; }
 		public MinecraftVersion Version { get; set; }
+		public PackReport? Report { get; set; } = new();
 
 		public PackBranch(string name, MinecraftVersion version)
 		{

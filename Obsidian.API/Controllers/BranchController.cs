@@ -80,5 +80,20 @@ namespace Obsidian.API.Controllers
 
 			return await _packLogic.DeleteBranch(pack, branch) ? Ok() : BadRequest();
 		}
+
+		[HttpGet("GetProgress/{packId}/{branchId}")]
+		[ProducesResponseType(typeof(PackReport), 200)]
+		[SwaggerResponse(404, "Pack does not exist")]
+		public async Task<IActionResult> GetProgressForBranch([FromRoute] Guid packId, [FromRoute] Guid branchId)
+		{
+			Pack? pack = await _packRepository.GetPackById(packId);
+			if (pack == null)
+				return NotFound("Pack not found");
+
+			PackReport? packReport = pack.Branches.FirstOrDefault(b => b.Id == branchId)?.Report;
+			if (packReport == null)
+				return NotFound("Branch does not have a report");
+			return Ok(packReport);
+		}
 	}
 }

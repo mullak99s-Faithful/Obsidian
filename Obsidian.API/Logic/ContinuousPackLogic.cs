@@ -1,13 +1,13 @@
 ﻿using LibGit2Sharp;
+using Obsidian.API.Git;
 using Obsidian.API.Repository;
+using Obsidian.SDK.Extensions;
 using Obsidian.SDK.Models;
 using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 using Obsidian.SDK.Models.Tools;
 using System.Security.Cryptography;
 using System.Text;
-using Obsidian.API.Git;
-using Obsidian.SDK.Extensions;
 
 namespace Obsidian.API.Logic
 {
@@ -18,16 +18,18 @@ namespace Obsidian.API.Logic
 
 		private readonly ITextureBucket _textureBucket;
 		private readonly ITextureMapRepository _textureMapRepository;
+		private readonly IPackRepository _packRepository;
 		private readonly IMiscBucket _miscBucket;
 		private readonly IPackPngLogic _packPngLogic;
 		private readonly IToolsLogic _toolsLogic;
 		private readonly IPackValidationLogic _packValidationLogic;
 		private readonly IGitOptions _gitOptions;
 
-		public ContinuousPackLogic(ITextureBucket textureBucket, ITextureMapRepository textureMapRepository, IMiscBucket miscBucket, IPackPngLogic packPngLogic, IToolsLogic toolsLogic, IPackValidationLogic packValidationLogic, IGitOptions gitOptions)
+		public ContinuousPackLogic(ITextureBucket textureBucket, ITextureMapRepository textureMapRepository, IPackRepository packRepository, IMiscBucket miscBucket, IPackPngLogic packPngLogic, IToolsLogic toolsLogic, IPackValidationLogic packValidationLogic, IGitOptions gitOptions)
 		{
 			_textureBucket = textureBucket;
 			_textureMapRepository = textureMapRepository;
+			_packRepository = packRepository;
 			_miscBucket = miscBucket;
 			_packPngLogic = packPngLogic;
 			_toolsLogic = toolsLogic;
@@ -267,9 +269,13 @@ namespace Obsidian.API.Logic
 			string reportPath = Path.Combine(branchPath, $"Report-{pack.Name}-{branch.Name}.txt");
 
 			PackReport packReport = await _packValidationLogic.CompareTextures(branchPath, assets.Textures);
+			branch.Report = packReport;
 
 			Console.WriteLine($"Missing textures for {pack.Name} - {branch.Name}: {packReport.MissingTotal}");
-			await packReport.GenerateReport(reportPath);
+
+			Task editBranchTask = _packRepository.EditBranch(pack.Id, branch.Id, branch);
+			Task generateReportTask = packReport.GenerateReport(reportPath);
+			await Task.WhenAll(editBranchTask, generateReportTask);
 		}
 
 		private async Task WriteChangedFileBytes(string path, byte[] bytes)
@@ -352,7 +358,7 @@ namespace Obsidian.API.Logic
 		}
 
 		public void CommitPack(Pack pack, string? overrideAutoMessage = null)
-			=> Parallel.ForEach(pack.Branches, branch => CommitBranch(pack, branch, overrideAutoMessage));
+			=> pack.Branches.ForEach(branch => CommitBranch(pack, branch, overrideAutoMessage));
 
 		public void CommitBranch(Pack pack, PackBranch branch, string? overrideAutoMessage = null)
 		{
@@ -366,7 +372,9 @@ namespace Obsidian.API.Logic
 				string localPath = GetBranchPath(pack, branch);
 				string gitPath = LibGit2Sharp.Repository.Discover(localPath);
 				using LibGit2Sharp.Repository gitRepo = new LibGit2Sharp.Repository(gitPath);
-				Branch? gitBranch = gitRepo.Branches[branch.Name]; // TODO: Needs an alternate way to set this since branch names can be changed
+				Branch?
+					gitBranch = gitRepo.Branches[
+						branch.Name]; // TODO: Needs an alternate way to set this since branch names can be changed
 				if (gitBranch == null)
 				{
 					Console.WriteLine($"[ContinuousPackLogic] Cannot find {pack.Name} - {branch.Name}");
@@ -388,16 +396,25 @@ namespace Obsidian.API.Logic
 					Signature author = GetSignature();
 					gitRepo.Commit(message, author, author);
 				}
-				else Console.WriteLine($"[ContinuousPackLogic] No changes for {pack.Name} - {branch.Name}: Skipping commit!");
+				else
+					Console.WriteLine(
+						$"[ContinuousPackLogic] No changes for {pack.Name} - {branch.Name}: Skipping commit!");
 
 				// Push the commit to the remote repository (inc. and missed pushes due to any errors)
 				// TODO: Needs an alternate way to set this since branch names can be changed
-				gitRepo.Network.Push(gitRepo.Network.Remotes["origin"], $"refs/heads/{branch.Name}:refs/heads/{branch.Name}", _pushOptions);
+				gitRepo.Network.Push(gitRepo.Network.Remotes["origin"],
+					$"refs/heads/{branch.Name}:refs/heads/{branch.Name}", _pushOptions);
 				Console.WriteLine($"[ContinuousPackLogic] Pushed {pack.Name} - {branch.Name}");
+			}
+			catch (LibGit2SharpException e)
+			{
+				Console.WriteLine(e.Message.Contains("The operation timed out")
+					? $"[ContinuousPackLogic] Push operation timed out for {pack.Name} - {branch.Name}: {e}"
+					: $"[ContinuousPackLogic] An error occurred when commiting {pack.Name} - {branch.Name}: {e}");
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine($"[ContinuousPackLogic] An error occurred when commiting {pack.Name} - {branch.Name}: {e}");
+				Console.WriteLine($"[ContinuousPackLogic] An unknown error occurred when commiting {pack.Name} - {branch.Name}: {e}");
 			}
 		}
 
