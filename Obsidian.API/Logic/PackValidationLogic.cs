@@ -36,7 +36,7 @@ namespace Obsidian.API.Logic
 			=> _textureBlacklist;
 
 		public async Task<PackReport> CompareTextures(string packFilesPath, List<string> refFiles)
-			=> await CompareTextures(GetAllTextures(packFilesPath), refFiles);
+			=> await CompareTextures(Utils.GetAllTextures(packFilesPath), refFiles);
 
 		public async Task<PackReport> CompareTextures(List<string> packFiles, List<string> refFiles)
 		{
@@ -70,12 +70,6 @@ namespace Obsidian.API.Logic
 			await Task.WhenAll(refTask, packTask); // Run async to improve speed
 			return packReport;
 		}
-
-		public List<string> GetAllTextures(string path)
-		{
-			string[] pngFiles = Directory.GetFiles(path, "*.png", SearchOption.AllDirectories);
-			return pngFiles.Select(file => file.Replace("/", "\\").Replace(path, "").Replace("\\", "/").TrimStart('/')).ToList();
-		}
 	}
 
 	public interface IPackValidationLogic
@@ -83,6 +77,5 @@ namespace Obsidian.API.Logic
 		List<string> GetAllBlacklistRules();
 		Task<PackReport> CompareTextures(string packFilesPath, List<string> refFiles);
 		Task<PackReport> CompareTextures(List<string> packFiles, List<string> refFiles);
-		List<string> GetAllTextures(string path);
 	}
 }

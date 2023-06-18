@@ -5,6 +5,7 @@ using Octokit;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using Obsidian.API.Extensions;
 using Obsidian.API.Repository;
 using Obsidian.SDK;
 using Obsidian.SDK.Enums;
@@ -84,8 +85,7 @@ namespace Obsidian.API.Logic
 				.Where(x => !allVersions.Select(y => y.Id).Contains(x.Name) || x.Version != ASSET_VERSION).ToList();
 
 			List<Task> removeTasks = unsupportedAssets.Select(asset => _vaRepository.DeleteVersionAssets(asset.Name, asset.Edition, asset.Version)).Cast<Task>().ToList();
-
-			await Utils.ProcessTasksInBatches(removeTasks);
+			await removeTasks.WhenAllThrottledAsync(25);
 		}
 
 		public async Task<bool> PregenerateJavaAssets(List<AssetMCVersion>? versions = null)

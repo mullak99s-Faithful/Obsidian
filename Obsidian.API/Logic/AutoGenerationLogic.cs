@@ -6,6 +6,7 @@ using Obsidian.SDK.Models;
 using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 using Obsidian.SDK.Models.Tools;
+using System.IO.Compression;
 
 namespace Obsidian.API.Logic
 {
@@ -15,6 +16,7 @@ namespace Obsidian.API.Logic
 		private readonly ITextureMapRepository _textureMapRepository;
 		private readonly IToolsLogic _toolsLogic;
 		private readonly IPackValidationLogic _packValidationLogic;
+		private readonly string GENERATION_PATH = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AutoGeneration");
 
 		public AutoGenerationLogic(IPackRepository packRepository, ITextureMapRepository textureMapRepository, IToolsLogic toolsLogic, IPackValidationLogic packValidationLogic)
 		{
@@ -63,8 +65,86 @@ namespace Obsidian.API.Logic
 			}).ToList();
 		}
 
+		public async Task<List<TextureAsset>> GenerateOptifineMappings(Guid packId, MinecraftVersion version, IFormFile packZipFile)
+		{
+			Pack? pack = await _packRepository.GetPackById(packId);
+			if (pack == null)
+				return new List<TextureAsset>();
+
+			Task<TextureMapping?> mapTask = _textureMapRepository.GetTextureMappingById(pack.TextureMappingsId);
+
+			Guid zipId = Guid.NewGuid();
+			string zipExtractPath = Path.Combine(GENERATION_PATH, zipId.ToString());
+			Directory.CreateDirectory(zipExtractPath);
+
+			string zipFilePath = Path.Combine(zipExtractPath, packZipFile.FileName);
+
+			List<Task> tasks = new() { mapTask };
+			await using (var fileStream = new FileStream(zipFilePath, FileMode.Create))
+			{
+				tasks.Add(packZipFile.CopyToAsync(fileStream));
+				await Task.WhenAll(tasks);
+			}
+			ZipFile.ExtractToDirectory(zipFilePath, zipExtractPath);
+
+			TextureMapping? map = mapTask.Result;
+
+			string tempPath = Path.Combine(GENERATION_PATH, zipId.ToString());
+			string optifinePath = Path.Combine(tempPath, "assets", "minecraft");
+
+			if (Directory.Exists(Path.Combine(optifinePath, "optifine")))
+				optifinePath = Path.Combine(optifinePath, "optifine", "ctm");
+			else if (Directory.Exists(Path.Combine(optifinePath, "mcpatcher")))
+				optifinePath = Path.Combine(optifinePath, "mcpatcher", "ctm");
+			else
+				return new List<TextureAsset>();
+
+			string fixedOptifinePath = optifinePath.Replace(tempPath, "").TrimStart('\\', '/');
+
+			List<string> optifineAssets = Utils.GetAllTextures(optifinePath).Select(x => Path.Combine(fixedOptifinePath, x.Replace("/", "\\"))).ToList();
+			List<string> texMapAssets = map?.GetAssetsForVersion(version).Select(asset => asset.Replace("\\", "/")).ToList() ?? new List<string>();
+
+			Task.Run(() => Utils.FastDeleteAll(tempPath)).ConfigureAwait(false).GetAwaiter();
+
+			return optifineAssets.Where(x => !texMapAssets.Contains(x)).Select(texture => new TextureAsset
+			{
+				Id = Guid.NewGuid(),
+				Names = GenerateNamesForTexture(texture),
+				TexturePaths = CreateTextures(texture, version)
+			}).ToList();
+		}
+
+		private List<Texture> CreateTextures(string texPath, MinecraftVersion minVersion)
+		{
+			List<Texture> textures = new();
+			string newTexPath = texPath.Replace("/", "\\");
+			if (newTexPath.Contains("ctm\\glass") && !newTexPath.Contains("tinted")) // Unique for some packs
+			{
+				textures.Add(new Texture()
+				{
+					Path = newTexPath.Replace("assets\\minecraft\\optifine", "assets\\minecraft\\mcpatcher"),
+					MCVersion = new(MinecraftVersion.MC17, MinecraftVersion.MC112)
+				});
+				textures.Add(new Texture()
+				{
+					Path = newTexPath,
+					MCVersion = new(MinecraftVersion.MC113, null)
+				});
+			}
+			else
+			{
+				textures.Add(new Texture()
+				{
+					Path = newTexPath,
+					MCVersion = new(minVersion, null)
+				});
+			}
+			return textures;
+		}
+
 		private List<string> GenerateNamesForTexture(string texturePath)
 		{
+			texturePath = texturePath.Replace("\\", "/");
 			string? fileName = Path.GetFileNameWithoutExtension(texturePath);
 			if (string.IsNullOrWhiteSpace(fileName))
 				return new List<string>();
@@ -185,13 +265,15 @@ namespace Obsidian.API.Logic
 				};
 			}
 
-			// Texture Name Replacements
-			if (finalFileName.Contains("SHERD"))
+			// Optifine
+			if (texturePath.Contains("assets/minecraft/optifine/ctm") || texturePath.Contains("assets/minecraft/mcpatcher/ctm"))
 			{
+				string? folderName = Path.GetFileName(Path.GetDirectoryName(texturePath))?.ToUpper().Replace("_", " ");
+				string finalName = string.IsNullOrWhiteSpace(folderName) || folderName == "CTM" ? $"OPTIFINE CTM {finalFileName}" : $"OPTIFINE CTM {folderName} {finalFileName}";
+
 				return new List<string>()
 				{
-					finalFileName,
-					finalFileName.Replace("SHERD", "SHARD")
+					finalName
 				};
 			}
 
@@ -205,5 +287,6 @@ namespace Obsidian.API.Logic
 	public interface IAutoGenerationLogic
 	{
 		Task<List<TextureAsset>> GenerateMissingMappings(Guid packId, MinecraftVersion version);
+		Task<List<TextureAsset>> GenerateOptifineMappings(Guid packId, MinecraftVersion version, IFormFile packZipFile);
 	}
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Obsidian.API.Logic;
 using Obsidian.SDK.Enums;
 using Obsidian.SDK.Models.Assets;
@@ -19,13 +20,36 @@ namespace Obsidian.API.Controllers
 			_autoGenerationLogic = autoGenerationLogic;
 		}
 
-		[HttpGet("generatemissingtextures")] // TODO: Need auth
+		[HttpGet("generatemissingtextures")]
+		[Authorize("write:add-mapping")] // TODO: Temp permission
 		[SwaggerResponse(200, Type = typeof(IEnumerable<TextureAsset>), Description = "Generate texture map of missing textures for a specific version")]
 		public async Task<IActionResult> GenerateMissingTextures(Guid packId, MinecraftVersion version)
 		{
 			try
 			{
 				List<TextureAsset> assets = await _autoGenerationLogic.GenerateMissingMappings(packId, version);
+
+				if (assets.Any())
+					return Ok(assets);
+				return BadRequest("No assets generated!"); // TODO: Include error message from logic method call
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(500, ex.Message);
+			}
+		}
+
+		[HttpPost("generatemissingoptifinetextures")]
+		[Authorize("write:add-mapping")] // TODO: Temp permission
+		[SwaggerResponse(200, Type = typeof(IEnumerable<TextureAsset>), Description = "Generate texture map of missing Optifine CTM textures for a specific version")]
+		public async Task<IActionResult> GenerateMissingOptifineTextures(Guid packId, MinecraftVersion version, IFormFile packZipFile)
+		{
+			try
+			{
+				if (!await Utils.IsZipFile(packZipFile))
+					return BadRequest("Invalid file!");
+
+				List<TextureAsset> assets = await _autoGenerationLogic.GenerateOptifineMappings(packId, version, packZipFile);
 
 				if (assets.Any())
 					return Ok(assets);

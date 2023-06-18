@@ -5,6 +5,7 @@ using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 using System.IO.Compression;
 using System.Text;
+using Obsidian.API.Extensions;
 using Obsidian.SDK.Models.Tools;
 using Pack = Obsidian.SDK.Models.Pack;
 
@@ -112,14 +113,20 @@ namespace Obsidian.API.Logic
 
 			supportedAssets = supportedAssets.Distinct().ToList();
 
+			Console.WriteLine($"Adding textures for {pack.Name}...");
+
+			List<Task> textureTasks = new();
 			foreach (TextureAsset asset in supportedAssets)
-				await _continuousPackLogic.AddTexture(pack, asset); // Don't run in parallel to avoid MongoDB connection limits. Could do with a way around this since its slow atm.
+				textureTasks.Add(_continuousPackLogic.AddTexture(pack, asset));
+
+			await textureTasks.WhenAllThrottledAsync(50);
 
 			List<Task> tasks = new();
 
 			// Models
 			if (pack.ModelMappingsId != null)
 			{
+				Console.WriteLine($"Adding models for {pack.Name}...");
 				ModelMapping? modelMap = await _modelMapRepository.GetModelMappingById(pack.ModelMappingsId.Value);
 				if (modelMap != null)
 				{
@@ -134,6 +141,7 @@ namespace Obsidian.API.Logic
 			// Blockstates
 			if (pack.BlockStateMappingsId != null)
 			{
+				Console.WriteLine($"Adding blockstates for {pack.Name}...");
 				BlockStateMapping? blockStateMap = await _blockStateMapRepository.GetBlockStateMappingById(pack.BlockStateMappingsId.Value);
 				if (blockStateMap != null)
 				{
@@ -194,13 +202,13 @@ namespace Obsidian.API.Logic
 							asset = textureMapping.Assets.Find(x => x.TexturePaths.Any(y => y.MCVersion.IsMatchingVersion(version) && y.MCMeta && y.MCMetaPath == entryPath));
 							if (asset == null)
 							{
-								Console.WriteLine($"Invalid asset: {entryPath}");
+								//Console.WriteLine($"Invalid asset: {entryPath}");
 								continue;
 							}
 							isMcMeta = true;
-							Console.WriteLine($"Valid MCMeta asset: {entryPath}");
+							//Console.WriteLine($"Valid MCMeta asset: {entryPath}");
 						}
-						else Console.WriteLine($"Valid texture asset: {entryPath}");
+						//else Console.WriteLine($"Valid texture asset: {entryPath}");
 
 						if (!isMcMeta)
 							await _textureBucket.UploadTexture(packId, asset.Id, Utils.WriteEntryToByteArray(entry), overwrite);
@@ -252,7 +260,7 @@ namespace Obsidian.API.Logic
 
 			foreach (var branch in pack.Branches)
 			{
-				// TODO: Not running in parallel to avoid MongoDB limits. Cache maybe?
+				// Not running in parallel to avoid MongoDB limits
 				await GenerateBranch(destinationPackPath, pack, branch, textureMapping, modelMapping, blockStateMapping);
 			}
 			Console.WriteLine($"Finished generating pack {pack.Name}!");
@@ -269,8 +277,8 @@ namespace Obsidian.API.Logic
 
 			Task textureAssetTask = Task.Run(async () =>
 			{
-				foreach (var asset in textureMapping.Assets.Where(x => x.TexturePaths.Any(y => y.MCVersion.IsMatchingVersion(branch.Version))))
-					await AddTexture(pack, branch, asset, dest);
+				List<Task> textureTasks = textureMapping.Assets.Where(x => x.TexturePaths.Any(y => y.MCVersion.IsMatchingVersion(branch.Version))).Select(asset => AddTexture(pack, branch, asset, dest)).ToList();
+				await textureTasks.WhenAllThrottledAsync(50);
 			});
 
 			Task modelAssetTask = Task.Run(async () =>

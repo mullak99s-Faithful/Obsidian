@@ -65,19 +65,13 @@ namespace Obsidian.API.Logic
 			return fileBytes[0] == 0x50 && fileBytes[1] == 0x4B && fileBytes[2] == 0x03 && fileBytes[3] == 0x04;
 		}
 
-		// TODO: Needs redoing, doesn't work correctly atm
-		public static async Task ProcessTasksInBatches(List<Task> tasks, int batchSize = 50)
+		public static async Task<bool> IsZipFile(IFormFile formFile)
+			=> IsZipFile(await GetBytesFromFormFileAsync(formFile));
+
+		public static List<string> GetAllTextures(string path)
 		{
-			int totalTasks = tasks.Count;
-			int processedTasks = 0;
-
-			while (processedTasks < totalTasks)
-			{
-				Task[] batch = tasks.Skip(processedTasks).Take(batchSize).ToArray();
-				await Task.WhenAll(batch);
-
-				processedTasks += batch.Length;
-			}
+			string[] pngFiles = Directory.GetFiles(path, "*.png", SearchOption.AllDirectories);
+			return pngFiles.Select(file => file.Replace("/", "\\").Replace(path, "").Replace("\\", "/").TrimStart('/')).ToList();
 		}
 	}
 }
