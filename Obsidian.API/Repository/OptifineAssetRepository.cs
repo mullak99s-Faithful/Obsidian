@@ -1,6 +1,6 @@
 ﻿using MongoDB.Driver;
-using Obsidian.SDK.Models;
 using Obsidian.SDK.Models.Assets;
+using Obsidian.SDK.Models;
 
 namespace Obsidian.API.Repository
 {
@@ -15,7 +15,7 @@ namespace Obsidian.API.Repository
 
 		public async Task<bool> AddAsset(OptifineAsset asset)
 		{
-			if (await GetAssetById(asset.Id) != null || await GetAssetByNames(asset.Names) != null)
+			if (await GetAssetById(asset.Id) != null || await GetAssetByName(asset.Name) != null)
 				return false;
 
 			await _collection.InsertOneAsync(asset);
@@ -35,11 +35,11 @@ namespace Obsidian.API.Repository
 			}
 		}
 
-		public async Task<OptifineAsset?> GetAssetByNames(List<string> names)
+		public async Task<OptifineAsset?> GetAssetByName(string name)
 		{
 			try
 			{
-				var filter = Builders<OptifineAsset>.Filter.AnyIn(x => x.Names, names);
+				var filter = Builders<OptifineAsset>.Filter.Eq(x => x.Name, name);
 				return await _collection.Find(filter).FirstOrDefaultAsync();
 			}
 			catch (Exception)
@@ -48,16 +48,13 @@ namespace Obsidian.API.Repository
 			}
 		}
 
-		public async Task<OptifineAsset?> GetAssetByName(string name)
-			=> await GetAssetByNames(new List<string> { name });
-
 		public async Task<Dictionary<Guid, List<string>>> GetAllAssetIds()
 		{
 			var dictionary = new Dictionary<Guid, List<string>>();
 			try
 			{
 				var filter = Builders<OptifineAsset>.Filter.Empty;
-				var projection = Builders<OptifineAsset>.Projection.Include(p => p.Id).Include(p => p.Names);
+				var projection = Builders<OptifineAsset>.Projection.Include(p => p.Id).Include(p => p.Name);
 				var cursor = await _collection.Find(filter).Project(projection).ToCursorAsync();
 
 				while (await cursor.MoveNextAsync())
@@ -91,17 +88,16 @@ namespace Obsidian.API.Repository
 			}
 		}
 
-		public async Task<List<string>> GetAssetNamesById(Guid id)
+		public async Task<string> GetAssetNameById(Guid id)
 		{
 			var filter = Builders<OptifineAsset>.Filter.Eq(p => p.Id, id);
-			var projection = Builders<OptifineAsset>.Projection.Include(p => p.Names);
+			var projection = Builders<OptifineAsset>.Projection.Include(p => p.Name);
 
 			var document = await _collection.Find(filter).Project(projection).FirstOrDefaultAsync();
-			var names = document["Names"].AsBsonArray.Select(x => x.AsString).ToList();
-			return names;
+			return document["Name"].AsString;
 		}
 
-		public async Task<bool> UpdateAsset(Guid id, List<string>? names, MCVersion? version, string? path)
+		public async Task<bool> UpdateAsset(Guid id, string? name, string? path)
 		{
 			if (await GetAssetById(id) != null)
 				return false;
@@ -109,16 +105,53 @@ namespace Obsidian.API.Repository
 			var filter = Builders<OptifineAsset>.Filter.Eq(p => p.Id, id);
 			List<UpdateDefinition<OptifineAsset>> updateDefinitions = new();
 
-			if (names != null)
-				updateDefinitions.Add(Builders<OptifineAsset>.Update.Set(p => p.Names, names));
-
-			if (version != null)
-				updateDefinitions.Add(Builders<OptifineAsset>.Update.Set(p => p.MCVersion, version));
+			if (name != null)
+				updateDefinitions.Add(Builders<OptifineAsset>.Update.Set(p => p.Name, name));
 
 			if (path != null)
 				updateDefinitions.Add(Builders<OptifineAsset>.Update.Set(p => p.Path, path));
 
 			var update = Builders<OptifineAsset>.Update.Combine(updateDefinitions);
+			var updated = await _collection.UpdateOneAsync(filter, update);
+			return updated.IsModifiedCountAvailable;
+		}
+
+		public async Task<bool> AddAssetProperties(Guid id, OptifineProperties properties)
+		{
+			var filter = Builders<OptifineAsset>.Filter.Eq(a => a.Id, id);
+			var update = Builders<OptifineAsset>.Update.Push(a => a.Properties, properties);
+
+			var updated = await _collection.UpdateOneAsync(filter, update);
+			return updated.IsModifiedCountAvailable;
+		}
+
+		public async Task<bool> UpdateAssetProperties(Guid assetId, Guid propertiesId, string? fileName, byte[]? data, MCVersion? mcVersion)
+		{
+			var filter = Builders<OptifineAsset>.Filter.Eq(a => a.Id, assetId) &
+			             Builders<OptifineAsset>.Filter.ElemMatch(a => a.Properties, p => p.Id == propertiesId);
+
+			var updateDefinition = Builders<OptifineAsset>.Update;
+			List<UpdateDefinition<OptifineAsset>> updateDefinitions = new();
+
+			if (fileName != null)
+				updateDefinitions.Add(updateDefinition.Set(a => a.Properties[-1].FileName, fileName));
+
+			if (data != null)
+				updateDefinitions.Add(updateDefinition.Set(a => a.Properties[-1].Data, data));
+
+			if (mcVersion != null)
+				updateDefinitions.Add(updateDefinition.Set(a => a.Properties[-1].MCVersion, mcVersion));
+
+			var update = Builders<OptifineAsset>.Update.Combine(updateDefinitions);
+			var updated = await _collection.UpdateOneAsync(filter, update);
+			return updated.IsModifiedCountAvailable;
+		}
+
+		public async Task<bool> RemoveAssetProperties(Guid assetId, Guid propertiesId)
+		{
+			var filter = Builders<OptifineAsset>.Filter.Eq(a => a.Id, assetId);
+			var update = Builders<OptifineAsset>.Update.PullFilter(a => a.Properties, p => p.Id == propertiesId);
+
 			var updated = await _collection.UpdateOneAsync(filter, update);
 			return updated.IsModifiedCountAvailable;
 		}
@@ -140,14 +173,16 @@ namespace Obsidian.API.Repository
 
 		// Read
 		Task<OptifineAsset?> GetAssetById(Guid id);
-		Task<OptifineAsset?> GetAssetByNames(List<string> names);
 		Task<OptifineAsset?> GetAssetByName(string name);
 		Task<Dictionary<Guid, List<string>>> GetAllAssetIds();
 		Task<List<OptifineAsset>> GetAllAssets();
-		Task<List<string>> GetAssetNamesById(Guid id);
+		Task<string> GetAssetNameById(Guid id);
 
 		// Update
-		Task<bool> UpdateAsset(Guid id, List<string>? names, MCVersion? version, string? path);
+		Task<bool> UpdateAsset(Guid id, string? name, string? path);
+		Task<bool> AddAssetProperties(Guid id, OptifineProperties properties);
+		Task<bool> UpdateAssetProperties(Guid assetId, Guid propertiesId, string? fileName, byte[]? data, MCVersion? mcVersion);
+		Task<bool> RemoveAssetProperties(Guid assetId, Guid propertiesId);
 
 		// Delete
 		Task<bool> DeleteAsset(Guid id);
