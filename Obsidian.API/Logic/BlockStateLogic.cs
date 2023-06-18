@@ -17,7 +17,7 @@ namespace Obsidian.API.Logic
 			_packRepository = packRepository;
 		}
 
-		public async Task<bool> AddBlockState(string blockStateName, List<Guid> packIds, string fileName, byte[] blockStateFile, MinecraftVersion minVersion, MinecraftVersion maxVersion)
+		public async Task<bool> AddBlockState(string blockStateName, List<Guid> packIds, string fileName, byte[] blockStateFile, MinecraftVersion minVersion, MinecraftVersion? maxVersion)
 		{
 			List<Pack?> packs = new();
 			foreach (var packId in packIds)
@@ -99,7 +99,7 @@ namespace Obsidian.API.Logic
 
 	public interface IBlockStateLogic
 	{
-		Task<bool> AddBlockState(string blockStateName, List<Guid> packIds, string fileName, byte[] blockStateFile, MinecraftVersion minVersion, MinecraftVersion maxVersion);
+		Task<bool> AddBlockState(string blockStateName, List<Guid> packIds, string fileName, byte[] blockStateFile, MinecraftVersion minVersion, MinecraftVersion? maxVersion);
 		Task<List<BlockState>> SearchForBlockStates(Guid packId, string searchQuery);
 		Task<BlockState?> GetBlockState(Guid packId, string name, MinecraftVersion version);
 		Task<bool> DeleteAllBlockStates(Guid mappingId);

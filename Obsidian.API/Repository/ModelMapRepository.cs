@@ -292,6 +292,17 @@ namespace Obsidian.API.Repository
 			var filter = Builders<ModelMapping>.Filter.Eq(t => t.Id, modelMapId);
 
 			var existingMap = await _collection.Find(filter).FirstOrDefaultAsync();
+			if (existingMap == null)
+				return false;
+
+			foreach (var asset in modelAssets)
+				asset.Model ??= existingMap.Models.Find(x => x.Id == asset.Id)?.Model;
+
+			if (modelAssets.Any(x => x.Model == null))
+			{
+				Console.WriteLine("Some model assets had null data. Models were not replaced!");
+				return false;
+			}
 
 			existingMap.Models = modelAssets;
 

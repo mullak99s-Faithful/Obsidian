@@ -14,13 +14,14 @@ namespace Obsidian.API.Logic
 			return stream.ToArray();
 		}
 
-		public static void FastDeleteAll(string path)
+		public static void FastDeleteAll(string path, bool deleteDirectory = true)
 		{
 			try
 			{
 				Parallel.ForEach(Directory.GetFiles(path), File.Delete);
-				Parallel.ForEach(Directory.GetDirectories(path), FastDeleteAll);
-				Directory.Delete(path, false);
+				Parallel.ForEach(Directory.GetDirectories(path), x => FastDeleteAll(x));
+				if (deleteDirectory)
+					Directory.Delete(path, false);
 			}
 			catch (Exception)
 			{

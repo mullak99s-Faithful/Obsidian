@@ -21,7 +21,7 @@ namespace Obsidian.API.Logic
 			_packRepository = packRepository;
 		}
 
-		public async Task<bool> AddModel(string fileName, string name, List<Guid> packIds, BlockModel model, string path, MinecraftVersion minVersion, MinecraftVersion maxVersion, bool overwrite = false)
+		public async Task<bool> AddModel(string fileName, string name, List<Guid> packIds, BlockModel model, string path, MinecraftVersion minVersion, MinecraftVersion? maxVersion, bool overwrite = false,  bool overwriteVersion = false)
 		{
 			List<Pack?> packs = new();
 			foreach (var packId in packIds)
@@ -52,7 +52,11 @@ namespace Obsidian.API.Logic
 					if (overwrite)
 						modelTasks.Add(_modelMapRepository.DeleteModel(existingModel.Id, mapping.Id));
 					else return false;
+
+					if (!overwriteVersion)
+						newModel.MCVersion = existingModel.MCVersion;
 				}
+
 				modelTasks.Add(_modelMapRepository.AddModel(newModel, mapping.Id));
 				await Task.WhenAll(modelTasks);
 			}
@@ -104,7 +108,7 @@ namespace Obsidian.API.Logic
 
 	public interface IModelLogic
 	{
-		Task<bool> AddModel(string fileName, string name, List<Guid> packIds, BlockModel model, string path, MinecraftVersion minVersion, MinecraftVersion maxVersion, bool overwrite = false);
+		Task<bool> AddModel(string fileName, string name, List<Guid> packIds, BlockModel model, string path, MinecraftVersion minVersion, MinecraftVersion? maxVersion, bool overwrite = false, bool overwriteVersion = false);
 		Task<List<ModelAsset>> SearchForModels(Guid packId, string searchQuery);
 		Task<ModelAsset?> GetModel(Guid packId, string name, MinecraftVersion version);
 		Task<bool> DeleteAllModels(Guid mappingId);

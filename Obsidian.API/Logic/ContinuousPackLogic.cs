@@ -169,6 +169,17 @@ namespace Obsidian.API.Logic
 			List<Task> ioTasks = new();
 			foreach (PackBranch branch in pack.Branches)
 			{
+				if (!asset.MCVersion.IsMatchingVersion(branch.Version))
+				{
+					// Skip asset since its not for this branch version
+					continue;
+				}
+				if (asset.Model == null)
+				{
+					Console.WriteLine($"[ContinuousPackLogic] Broken model asset! {asset.Path}");
+					continue;
+				}
+
 				string modelJson = asset.Serialize(textureAssets, branch.Version);
 				if (!string.IsNullOrWhiteSpace(modelJson))
 				{
@@ -187,7 +198,8 @@ namespace Obsidian.API.Logic
 			if (blockState.Data.Length > 0)
 			{
 				List<Task> ioTasks = new();
-				foreach (var dirPath in pack.Branches.Select(branch => Path.Combine(GetMinecraftDirectory(pack, branch), "blockstates")))
+				foreach (var dirPath in pack.Branches.Where(x => blockState.MCVersion.IsMatchingVersion(x.Version))
+					         .Select(branch => Path.Combine(GetMinecraftDirectory(pack, branch), "blockstates")))
 				{
 					Directory.CreateDirectory(dirPath);
 
@@ -211,6 +223,12 @@ namespace Obsidian.API.Logic
 			}
 			await Task.WhenAll(ioTasks);
 		}
+
+		public void PurgeBranches(Pack pack)
+			=> Parallel.ForEach(pack.Branches, branch => PurgeBranch(pack, branch));
+
+		public void PurgeBranch(Pack pack, PackBranch branch)
+			=> Utils.FastDeleteAll(Path.Combine(GetBranchPath(pack, branch), "assets"), false);
 
 		public async Task PackAutomation(Pack pack)
 		{
@@ -309,7 +327,10 @@ namespace Obsidian.API.Logic
 				string gitBranchName = branch.Name; // TODO: Needs an alternate way to set this since branch names can be changed
 				string localPath = GetBranchPath(pack, branch);
 
-				string gitPath = !LibGit2Sharp.Repository.IsValid(localPath) ? LibGit2Sharp.Repository.Init(localPath, localPath) : LibGit2Sharp.Repository.Discover(localPath);
+				string gitPath = !LibGit2Sharp.Repository.IsValid(localPath)
+					? LibGit2Sharp.Repository.Init(localPath, localPath)
+					: LibGit2Sharp.Repository.Discover(localPath);
+
 				using LibGit2Sharp.Repository repo = new LibGit2Sharp.Repository(gitPath);
 
 				try
@@ -371,15 +392,17 @@ namespace Obsidian.API.Logic
 				// Need to get these again. Will cause a memory access violation otherwise
 				string localPath = GetBranchPath(pack, branch);
 				string gitPath = LibGit2Sharp.Repository.Discover(localPath);
+
 				using LibGit2Sharp.Repository gitRepo = new LibGit2Sharp.Repository(gitPath);
-				Branch?
-					gitBranch = gitRepo.Branches[
-						branch.Name]; // TODO: Needs an alternate way to set this since branch names can be changed
+
+				Branch? gitBranch = gitRepo.Branches[branch.Name]; // TODO: Needs an alternate way to set this since branch names can be changed
 				if (gitBranch == null)
 				{
 					Console.WriteLine($"[ContinuousPackLogic] Cannot find {pack.Name} - {branch.Name}");
 					return;
 				}
+
+				// TODO: Will likely need to pull the branch just in case
 
 				// Stage all files in the repository
 				Commands.Stage(gitRepo, "*");
@@ -402,8 +425,7 @@ namespace Obsidian.API.Logic
 
 				// Push the commit to the remote repository (inc. and missed pushes due to any errors)
 				// TODO: Needs an alternate way to set this since branch names can be changed
-				gitRepo.Network.Push(gitRepo.Network.Remotes["origin"],
-					$"refs/heads/{branch.Name}:refs/heads/{branch.Name}", _pushOptions);
+				gitRepo.Network.Push(gitRepo.Network.Remotes["origin"], $"refs/heads/{branch.Name}:refs/heads/{branch.Name}", _pushOptions);
 				Console.WriteLine($"[ContinuousPackLogic] Pushed {pack.Name} - {branch.Name}");
 			}
 			catch (LibGit2SharpException e)
@@ -448,5 +470,7 @@ namespace Obsidian.API.Logic
 		Task PackValidation(Pack pack);
 		void CommitPack(Pack pack, string? overrideAutoMessage = null);
 		void CommitBranch(Pack pack, PackBranch branch, string? overrideAutoMessage = null);
+		void PurgeBranches(Pack pack);
+		void PurgeBranch(Pack pack, PackBranch branch);
 	}
 }

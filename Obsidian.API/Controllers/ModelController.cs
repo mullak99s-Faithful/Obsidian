@@ -30,7 +30,7 @@ namespace Obsidian.API.Controllers
 		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:upload-model")]
-		public async Task<IActionResult> UploadModel([FromRoute] string modelName, [FromQuery] string packIds, string path, IFormFile modelFile, MinecraftVersion minVersion, MinecraftVersion maxVersion)
+		public async Task<IActionResult> UploadModel([FromRoute] string modelName, [FromQuery] string packIds, string path, IFormFile modelFile, MinecraftVersion minVersion, MinecraftVersion? maxVersion)
 		{
 			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
 
@@ -57,7 +57,7 @@ namespace Obsidian.API.Controllers
 		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:upload-model")]
-		public async Task<IActionResult> Import([FromQuery] string packIds, string? nameSuffix, IFormFile zipFile, MinecraftVersion minVersion, MinecraftVersion maxVersion, bool overwrite = false)
+		public async Task<IActionResult> Import([FromQuery] string packIds, string? nameSuffix, IFormFile zipFile, MinecraftVersion minVersion, MinecraftVersion? maxVersion, bool overwrite = false, bool overwriteVersion = false)
 		{
 			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
 
@@ -99,7 +99,7 @@ namespace Obsidian.API.Controllers
 							return BadRequest("Invalid model!");
 
 						Console.WriteLine($"FileName: {fileName}, ModelName: {modelName}, Path: {path}");
-						await _logic.AddModel(fileName, modelName, packIdList, blockModel, path, minVersion, maxVersion);
+						await _logic.AddModel(fileName, modelName, packIdList, blockModel, path, minVersion, maxVersion, overwrite, overwriteVersion);
 					}
 				}
 			}

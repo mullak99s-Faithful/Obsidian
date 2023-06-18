@@ -102,6 +102,12 @@ namespace Obsidian.API.Logic
 				return;
 			}
 
+
+			// Delete all assets (ensures invalid assets are removed,
+			// a more elegant solution might be needed, but "full-checks" are expected to be slow)
+			Console.WriteLine($"Deleting all existing assets for {pack.Name}...");
+			_continuousPackLogic.PurgeBranches(pack);
+
 			// Textures
 			TextureMapping? texMap = await _textureMapRepository.GetTextureMappingById(pack.TextureMappingsId);
 			if (texMap == null)

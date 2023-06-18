@@ -142,13 +142,16 @@ namespace Obsidian.API.Controllers
 		[HttpGet("ModelMap/Export/{id}")]
 		[ProducesResponseType(typeof(ModelMapping), 200)]
 		[SwaggerResponse(404, "Model mapping does not exist")]
-		public async Task<IActionResult> ExportModelMapping([FromRoute] Guid id)
+		public async Task<IActionResult> ExportModelMapping([FromRoute] Guid id, bool nullifyModel = true)
 		{
 			ModelMapping? map = await _modelMapRepository.GetModelMappingById(id);
 			if (map == null)
 				return NotFound();
 
 			List<ModelAsset> modelAssets = map.Models;
+			if (nullifyModel)
+				modelAssets.ForEach(x => x.Model = null);
+
 			if (modelAssets.Count == 0)
 				return NotFound("The model map contains no models!");
 

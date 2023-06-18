@@ -9,10 +9,10 @@ namespace Obsidian.SDK.Models.Assets
 		public string Name { get; set; }
 		public string Path { get; set; }
 		public string FileName { get; set; }
-		public BlockModel Model { get; set; }
+		public BlockModel? Model { get; set; }
 		public MCVersion MCVersion { get; set; }
 
-		public ModelAsset(BlockModel rawModel, MCVersion version, string name, string path, string fileName, List<TextureAsset> textureAssets)
+		public ModelAsset(BlockModel? rawModel, MCVersion version, string name, string path, string fileName, List<TextureAsset>? textureAssets)
 		{
 			Id = Guid.NewGuid();
 			Name = name;
@@ -20,6 +20,9 @@ namespace Obsidian.SDK.Models.Assets
 			FileName = fileName;
 			Model = ConvertRawModelToModel(rawModel, textureAssets);
 			MCVersion = version;
+
+			if (path.ToLower().Contains(".json"))
+				throw new ArgumentException("Path cannot contain the filename");
 		}
 
 		public void Update(BlockModel model)
@@ -39,8 +42,11 @@ namespace Obsidian.SDK.Models.Assets
 		/// <param name="textureAssets">Texture mappings</param>
 		/// <returns>A BlockModel in Obsidian's format</returns>
 		/// <exception cref="ArgumentNullException">No matching asset in texture mappings</exception>
-		private BlockModel ConvertRawModelToModel(BlockModel rawModel, List<TextureAsset> textureAssets)
+		private BlockModel? ConvertRawModelToModel(BlockModel? rawModel, List<TextureAsset>? textureAssets)
 		{
+			if (rawModel == null || textureAssets == null)
+				return null;
+
 			Dictionary<string, string>? textures = rawModel.Textures;
 			if (textures != null && textures.Any())
 			{
@@ -122,7 +128,7 @@ namespace Obsidian.SDK.Models.Assets
 
 					if (tex == null)
 					{
-						Console.WriteLine($"Model Serialize: Null texture! Asset = {asset.Names.First()}, TexId = {texId}");
+						Console.WriteLine($"Model Serialize: Null texture! Asset = {asset.Names.First()}, TexId = {texId}, Model = {FileName}");
 						continue;
 					}
 
