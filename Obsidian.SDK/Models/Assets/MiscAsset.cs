@@ -6,19 +6,21 @@ namespace Obsidian.SDK.Models.Assets
 	public class MiscAsset
 	{
 		public Guid Id { get; set; }
+		public string Name { get; set; }
 		public MCVersion MCVersion { get; set; }
 		public byte[]? ZipBytes { get; set; }
 
-		public MiscAsset(MinecraftVersion minVersion, MinecraftVersion maxVersion)
+		public MiscAsset(string name, MinecraftVersion minVersion, MinecraftVersion? maxVersion)
 		{
 			Id = Guid.NewGuid();
+			Name = name;
 			MCVersion = new MCVersion(minVersion, maxVersion);
 		}
 
-		public MiscAsset(MinecraftVersion minVersion, MinecraftVersion maxVersion, string path) : this(minVersion, maxVersion)
+		public MiscAsset(string name, MinecraftVersion minVersion, MinecraftVersion? maxVersion, string path) : this(name, minVersion, maxVersion)
 			=> Read(path);
 
-		public MiscAsset(MinecraftVersion minVersion, MinecraftVersion maxVersion, byte[] zipBytes) : this(minVersion, maxVersion)
+		public MiscAsset(string name, MinecraftVersion minVersion, MinecraftVersion? maxVersion, byte[] zipBytes) : this(name, minVersion, maxVersion)
 			=> ZipBytes = zipBytes;
 
 		public MiscAsset() {}

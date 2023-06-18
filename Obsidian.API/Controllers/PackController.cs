@@ -154,10 +154,21 @@ namespace Obsidian.API.Controllers
 			return Ok();
 		}
 
+		[HttpGet("Misc/GetAll")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		public async Task<IActionResult> GetAllMiscAssets(Guid packId)
+		{
+			Pack? pack = await _packRepository.GetPackById(packId);
+			if (pack == null)
+				return BadRequest("Invalid pack id!");
+
+			return Ok(await _miscAssetLogic.GetMiscAssetNamesForPack(pack));
+		}
+
 		[HttpPost("Misc/Add")]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:edit-pack")]
-		public async Task<IActionResult> AddMiscAsset(Guid packId, MinecraftVersion minVersion, MinecraftVersion maxVersion, IFormFile miscAsset, bool overwrite = true)
+		public async Task<IActionResult> AddMiscAsset(Guid packId, string name, MinecraftVersion minVersion, MinecraftVersion maxVersion, IFormFile miscAsset, bool overwrite = true)
 		{
 			Pack? pack = await _packRepository.GetPackById(packId);
 			if (pack == null)
@@ -168,7 +179,7 @@ namespace Obsidian.API.Controllers
 			if (bytes.Length == 0 || !Utils.IsZipFile(bytes))
 				return BadRequest("Invalid misc asset!");
 
-			await _miscAssetLogic.AddMiscAsset(pack, minVersion, maxVersion, bytes, overwrite);
+			await _miscAssetLogic.AddMiscAsset(pack, name, minVersion, maxVersion, bytes, overwrite);
 			return Ok();
 		}
 

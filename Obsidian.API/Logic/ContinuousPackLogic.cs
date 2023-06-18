@@ -53,10 +53,6 @@ namespace Obsidian.API.Logic
 			{
 				Console.WriteLine($"[ContinuousPackLogic] Created pack {pack.Name} ({pack.Id})");
 				Directory.CreateDirectory(packPath);
-
-				#if DEBUG
-				File.Create(Path.Combine(_rootPath, $"{pack.Name} - {pack.Id}")).Dispose();
-				#endif
 			}
 		}
 
@@ -67,11 +63,6 @@ namespace Obsidian.API.Logic
 			{
 				Console.WriteLine($"[ContinuousPackLogic] Deleted pack {pack.Name} ({pack.Id})");
 				Task.Run(() => Utils.FastDeleteAll(packPath));
-
-				#if DEBUG
-				if (File.Exists(Path.Combine(_rootPath, $"{pack.Name} - {pack.Id}")))
-					File.Delete(Path.Combine(_rootPath, $"{pack.Name} - {pack.Id}"));
-				#endif
 			}
 		}
 
@@ -84,10 +75,6 @@ namespace Obsidian.API.Logic
 				Directory.CreateDirectory(branchPath);
 
 				_ = GetBranch(pack, branch);
-
-				#if DEBUG
-				File.Create(Path.Combine(GetPackPath(pack), $"{branch.Name} - {branch.Id}")).Dispose();
-				#endif
 			}
 		}
 
@@ -98,11 +85,6 @@ namespace Obsidian.API.Logic
 			{
 				Console.WriteLine($"[ContinuousPackLogic] Deleted branch {branch.Name} ({branch.Id}) for {pack.Name} ({pack.Id})");
 				Task.Run(() => Utils.FastDeleteAll(branchPath));
-
-				#if DEBUG
-				if (File.Exists(Path.Combine(GetPackPath(pack), $"{branch.Name} - {branch.Id}")))
-					File.Delete(Path.Combine(GetPackPath(pack), $"{branch.Name} - {branch.Id}"));
-				#endif
 			}
 		}
 
@@ -444,10 +426,10 @@ namespace Obsidian.API.Logic
 			=> new(_gitOptions.AuthorName, _gitOptions.AuthorEmail, DateTimeOffset.Now);
 
 		private string GetPackPath(Pack pack)
-			=> Path.Combine(_rootPath, pack.Id.ToString());
+			=> Path.Combine(_rootPath, pack.Name); // Can't use Guid since it can make the path too long
 
 		private string GetBranchPath(Pack pack, PackBranch branch)
-			=> Path.Combine(GetPackPath(pack), branch.Id.ToString());
+			=> Path.Combine(GetPackPath(pack), branch.Name); // Can't use Guid since it can make the path too long
 
 		private string GetMinecraftDirectory(Pack pack, PackBranch branch)
 			=> Path.Combine(GetBranchPath(pack, branch), "assets", "minecraft");

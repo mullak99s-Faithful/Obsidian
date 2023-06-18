@@ -24,6 +24,9 @@ namespace Obsidian.SDK.Models
 		/// <returns>If the version matches</returns>
 		public bool IsMatchingVersion(MinecraftVersion? version)
 		{
+			if (MaxVersion == 0) // MaxVersion should not be 0
+				MaxVersion = null;
+
 			int ver = (int?)version ?? int.MaxValue;
 			int maxVersion = (int?)MaxVersion ?? int.MaxValue;
 			return ver >= (int)MinVersion && ver <= maxVersion;

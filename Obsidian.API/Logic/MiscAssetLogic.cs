@@ -1,4 +1,5 @@
-﻿using Obsidian.API.Repository;
+﻿using Obsidian.API.Extensions;
+using Obsidian.API.Repository;
 using Obsidian.SDK.Enums;
 using Obsidian.SDK.Models;
 using Obsidian.SDK.Models.Assets;
@@ -16,9 +17,9 @@ namespace Obsidian.API.Logic
 			_miscBucket = miscBucket;
 		}
 
-		public async Task AddMiscAsset(Pack pack, MinecraftVersion minVersion, MinecraftVersion maxVersion, byte[] zipBytes, bool overwrite = true)
+		public async Task AddMiscAsset(Pack pack, string name, MinecraftVersion minVersion, MinecraftVersion maxVersion, byte[] zipBytes, bool overwrite = true)
 		{
-			MiscAsset miscAsset = new MiscAsset(minVersion, maxVersion, zipBytes);
+			MiscAsset miscAsset = new MiscAsset(name, minVersion, maxVersion, zipBytes);
 
 			if (!pack.MiscAssetIds.Contains(miscAsset.Id))
 				pack.MiscAssetIds.Add(miscAsset.Id);
@@ -47,6 +48,17 @@ namespace Obsidian.API.Logic
 				await RemoveMiscIdFromPack(pack, assetId);
 		}
 
+		public async Task<Dictionary<Guid, string>> GetMiscAssetNamesForPack(Pack pack)
+		{
+			List<Guid> miscAssetIds = pack.MiscAssetIds;
+
+			List<Task<MiscAsset?>> downloadTasks = miscAssetIds.Select(assetId => _miscBucket.DownloadMisc(assetId)).ToList();
+			await downloadTasks.WhenAllThrottledAsync(5);
+
+			IEnumerable<MiscAsset?> miscAssets = downloadTasks.Select(task => task.Result);
+			return miscAssets.Where(asset => asset != null).ToDictionary(asset => asset!.Id, asset => asset!.Name);
+		}
+
 		private async Task RemoveMiscIdFromPack(Pack pack, Guid assetId)
 		{
 			pack.MiscAssetIds.Remove(assetId);
@@ -56,7 +68,8 @@ namespace Obsidian.API.Logic
 
 	public interface IMiscAssetLogic
 	{
-		Task AddMiscAsset(Pack pack, MinecraftVersion minVersion, MinecraftVersion maxVersion, byte[] zipBytes, bool overwrite = true);
+		Task AddMiscAsset(Pack pack, string name, MinecraftVersion minVersion, MinecraftVersion maxVersion, byte[] zipBytes, bool overwrite = true);
 		Task DeleteMiscAsset(Pack pack, Guid assetId);
+		Task<Dictionary<Guid, string>> GetMiscAssetNamesForPack(Pack pack);
 	}
 }
