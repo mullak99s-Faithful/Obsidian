@@ -1,6 +1,6 @@
 - Specify a manual build, include a changelog
 - Automatic credits generation (add credits on texture upload)
-- Add Optifine textures to Texture Mappings (Might need an alternate solution since properties will need adding too)
+- Add Optifine CTM properties automatically (Optifine Mappings repo?)
 - Automatically add everything needed to a newly created branch
 - Hook up continuous logic to adding/deleting models, blockstates, misc, and pack.png
 - Automatically link branches created with continuous builds to Git repos
