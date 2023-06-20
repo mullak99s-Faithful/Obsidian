@@ -98,15 +98,18 @@ namespace Obsidian.API.Logic
 
 		public async Task<bool> DeleteAllBlockStates(Guid mappingId)
 		{
-			Task clearTask = _blockStateMapRepository.ClearBlockStates(mappingId);
+			Task<bool> clearTask = _blockStateMapRepository.ClearBlockStates(mappingId);
 			Task<List<Pack>> packTask = _packRepository.GetAllPacks();
 			await Task.WhenAll(clearTask, packTask);
 
-			List<Guid> packIds = packTask.Result.Where(x => x.ModelMappingsId == mappingId).Select(x => x.Id).ToList();
-
-			List<Task> tasks = new();
-			tasks.AddRange(packIds.Select(NotifyBlockstatesChanged));
-			await Task.WhenAll(tasks);
+			if (clearTask.Result)
+			{
+				List<Guid> packIds = packTask.Result.Where(x => x.ModelMappingsId == mappingId).Select(x => x.Id).ToList();
+				List<Task> tasks = new();
+				tasks.AddRange(packIds.Select(NotifyBlockstatesChanged));
+				await Task.WhenAll(tasks);
+			}
+			return clearTask.Result;
 		}
 
 		public async Task NotifyBlockstatesChanged(Guid packId)
