@@ -477,7 +477,7 @@ namespace Obsidian.API.Logic
 		Task AddMisc(Pack pack, PackBranch? branch = null);
 		Task PackAutomation(Pack pack);
 		Task PackBranchAutomation(Pack pack, PackBranch branch);
-		void DeletePackMcMeta(Pack pack, PackBranch branch);
+		void DeletePackMCMeta(Pack pack, PackBranch branch);
 		void DeletePackPng(Pack pack, PackBranch branch);
 		Task PackValidation(Pack pack);
 		Task BranchValidation(Pack pack, PackBranch branch);
