@@ -1,7 +1,6 @@
 ﻿using Obsidian.API.Repository;
 using Obsidian.SDK.Enums;
 using Obsidian.SDK.Models;
-using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 using Pack = Obsidian.SDK.Models.Pack;
 

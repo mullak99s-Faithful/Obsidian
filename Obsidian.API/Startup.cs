@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Http;
+﻿using Microsoft.Extensions.Http;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 using Obsidian.API.Abstractions;
@@ -113,6 +112,9 @@ namespace Obsidian.API
 
 			// Logic (Singleton)
 			services.AddSingleton<IPackValidationLogic, PackValidationLogic>();
+
+			// Autorun
+			services.AddHostedService<ScheduledService>();
 
 			BuildServiceProviderAsync(services).Wait();
 

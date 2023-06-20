@@ -2,4 +2,3 @@
 - Automatic credits generation (add credits on texture upload)
 - Add Optifine CTM properties automatically (Optifine Mappings repo?)
 - Automatically link branches created with continuous builds to Git repos
-- Schedule git commits
