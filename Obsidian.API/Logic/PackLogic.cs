@@ -8,6 +8,7 @@ using System.Text;
 using Obsidian.API.Extensions;
 using Obsidian.SDK.Models.Tools;
 using Pack = Obsidian.SDK.Models.Pack;
+using System.Threading.Tasks;
 
 namespace Obsidian.API.Logic
 {
@@ -60,8 +61,10 @@ namespace Obsidian.API.Logic
 		{
 			bool success = await _packRepository.AddBranch(pack.Id, branch);
 			if (success)
+			{
 				_continuousPackLogic.AddBranch(pack, branch);
-
+				Task.Run(async () => await CreateContinuousBranch(pack, branch)).ConfigureAwait(false).GetAwaiter(); // Run in background
+			}
 			return success;
 		}
 
@@ -82,6 +85,95 @@ namespace Obsidian.API.Logic
 			_continuousPackLogic.CommitPack(pack);
 		}
 
+		public async Task<List<TextureAsset>> GetSupportedTextureAssets(Pack pack, PackBranch? branch = null)
+		{
+			List<TextureAsset> supportedAssets = new();
+			TextureMapping? texMap = await _textureMapRepository.GetTextureMappingById(pack.TextureMappingsId);
+			if (texMap == null)
+				return supportedAssets;
+
+			List<PackBranch> branches = new();
+			if (branch != null)
+				branches.Add(branch);
+			else
+				branches.AddRange(pack.Branches);
+
+			foreach (PackBranch br in branches)
+				supportedAssets.AddRange(texMap.Assets.Where(x => x.TexturePaths.Any(y => y.MCVersion.IsMatchingVersion(br.Version))));
+
+			return supportedAssets.Distinct().ToList();
+		}
+
+		public async Task AddAllModels(Pack pack, PackBranch branch, List<TextureAsset>? supportedAssets = null)
+		{
+			if (pack.ModelMappingsId != null)
+				return;
+
+			supportedAssets ??= await GetSupportedTextureAssets(pack, branch);
+			if (supportedAssets.Count == 0)
+				return;
+
+			Console.WriteLine($"Adding models for {pack.Name} - {branch.Name}...");
+			ModelMapping? modelMap = await _modelMapRepository.GetModelMappingById(pack.ModelMappingsId!.Value);
+
+			List<Task> tasks = new();
+			if (modelMap != null)
+			{
+				_continuousPackLogic.PurgeBranch(pack, branch, Path.Combine("assets", "minecraft", "models"));
+				List<ModelAsset> supportedModels = modelMap.Models.FindAll(x => x.MCVersion.IsMatchingVersion(branch.Version)).Distinct().ToList();
+				tasks.AddRange(supportedModels.Select(asset => _continuousPackLogic.AddModel(pack, asset, supportedAssets)));
+			}
+			await Task.WhenAll(tasks);
+		}
+
+		public async Task AddAllBlockstates(Pack pack, PackBranch branch)
+		{
+			if (pack.BlockStateMappingsId != null)
+				return;
+
+			Console.WriteLine($"Adding blockstates for {pack.Name} - {branch.Name}...");
+			BlockStateMapping? blockStateMap = await _blockStateMapRepository.GetBlockStateMappingById(pack.BlockStateMappingsId!.Value);
+
+			List<Task> tasks = new();
+			if (blockStateMap != null)
+			{
+				_continuousPackLogic.PurgeBranch(pack, branch, Path.Combine("assets", "minecraft", "blockstates"));
+				List<BlockState> supportedBlockStates = blockStateMap.Models.FindAll(x => x.MCVersion.IsMatchingVersion(branch.Version)).Distinct().ToList();
+				tasks.AddRange(supportedBlockStates.Select(asset => _continuousPackLogic.AddBlockState(pack, asset)));
+			}
+			await Task.WhenAll(tasks);
+		}
+
+		private async Task CreateContinuousBranch(Pack pack, PackBranch branch, bool commit = false)
+		{
+			// Textures
+			TextureMapping? texMap = await _textureMapRepository.GetTextureMappingById(pack.TextureMappingsId);
+			if (texMap == null)
+				return;
+
+			List<TextureAsset> supportedAssets = texMap.Assets.Where(x => x.TexturePaths.Any(y => y.MCVersion.IsMatchingVersion(branch.Version))).Distinct().ToList();
+
+			Console.WriteLine($"Adding textures for {pack.Name} - {branch.Name}...");
+
+			List<Task> textureTasks = supportedAssets.Select(asset => _continuousPackLogic.AddTexture(pack, asset)).ToList();
+			await textureTasks.WhenAllThrottledAsync(25);
+
+			List<Task> tasks = new() {
+				AddAllModels(pack, branch, supportedAssets),
+				AddAllBlockstates(pack, branch),
+				_continuousPackLogic.AddMisc(pack, branch),
+				_continuousPackLogic.PackBranchAutomation(pack, branch)
+			};
+
+			await Task.WhenAll(tasks);
+			await _continuousPackLogic.BranchValidation(pack, branch);
+
+			if (commit)
+				_continuousPackLogic.CommitBranch(pack, branch);
+
+			Console.WriteLine($"Created {pack.Name} - {branch.Name}!");
+		}
+
 		public async Task TriggerPackCheck(Guid packId, bool doFullCheck = false)
 		{
 			Pack? pack = await _packRepository.GetPackById(packId);
@@ -91,7 +183,7 @@ namespace Obsidian.API.Logic
 			Console.WriteLine($"Starting pack check for {pack.Name}...");
 
 			_continuousPackLogic.AddPack(pack);
-			foreach(PackBranch branch in pack.Branches)
+			foreach (PackBranch branch in pack.Branches)
 				_continuousPackLogic.AddBranch(pack, branch);
 
 			// Full Check
@@ -102,71 +194,30 @@ namespace Obsidian.API.Logic
 				return;
 			}
 
-
 			// Delete all assets (ensures invalid assets are removed,
 			// a more elegant solution might be needed, but "full-checks" are expected to be slow)
 			Console.WriteLine($"Deleting all existing assets for {pack.Name}...");
 			_continuousPackLogic.PurgeBranches(pack);
 
 			// Textures
-			TextureMapping? texMap = await _textureMapRepository.GetTextureMappingById(pack.TextureMappingsId);
-			if (texMap == null)
+			List<TextureAsset> supportedAssets = await GetSupportedTextureAssets(pack);
+			if (supportedAssets.Count == 0)
 				return;
-
-			List<TextureAsset> supportedAssets = new();
-			foreach(PackBranch branch in pack.Branches)
-				supportedAssets.AddRange(texMap.Assets.Where(x => x.TexturePaths.Any(y => y.MCVersion.IsMatchingVersion(branch.Version))));
-
-			supportedAssets = supportedAssets.Distinct().ToList();
 
 			Console.WriteLine($"Adding textures for {pack.Name}...");
 
-			List<Task> textureTasks = new();
-			foreach (TextureAsset asset in supportedAssets)
-				textureTasks.Add(_continuousPackLogic.AddTexture(pack, asset));
-
+			List<Task> textureTasks = supportedAssets.Select(asset => _continuousPackLogic.AddTexture(pack, asset)).ToList();
 			await textureTasks.WhenAllThrottledAsync(50);
 
-			List<Task> tasks = new();
+			List<Task> tasks = new() {
+				_continuousPackLogic.AddMisc(pack),
+				_continuousPackLogic.PackAutomation(pack)
+			};
 
-			// Models
-			if (pack.ModelMappingsId != null)
-			{
-				Console.WriteLine($"Adding models for {pack.Name}...");
-				ModelMapping? modelMap = await _modelMapRepository.GetModelMappingById(pack.ModelMappingsId.Value);
-				if (modelMap != null)
-				{
-					List<ModelAsset> supportedModels = new();
-					foreach (PackBranch branch in pack.Branches)
-						supportedModels.AddRange(modelMap.Models.FindAll(x => x.MCVersion.IsMatchingVersion(branch.Version)));
-
-					tasks.AddRange(supportedModels.Distinct().Select(asset => _continuousPackLogic.AddModel(pack, asset, supportedAssets)));
-				}
-			}
-
-			// Blockstates
-			if (pack.BlockStateMappingsId != null)
-			{
-				Console.WriteLine($"Adding blockstates for {pack.Name}...");
-				BlockStateMapping? blockStateMap = await _blockStateMapRepository.GetBlockStateMappingById(pack.BlockStateMappingsId.Value);
-				if (blockStateMap != null)
-				{
-					List<BlockState> supportedBlockStates = new();
-					foreach (PackBranch branch in pack.Branches)
-						supportedBlockStates.AddRange(blockStateMap.Models.FindAll(x => x.MCVersion.IsMatchingVersion(branch.Version)));
-
-					tasks.AddRange(supportedBlockStates.Distinct().Select(asset => _continuousPackLogic.AddBlockState(pack, asset)));
-				}
-			}
-
-			// Misc
-			tasks.Add(_continuousPackLogic.AddMisc(pack));
-
-			// Automation
-			tasks.Add(_continuousPackLogic.PackAutomation(pack));
+			tasks.AddRange(pack.Branches.Select(branch => AddAllModels(pack, branch, supportedAssets)));
+			tasks.AddRange(pack.Branches.Select(branch => AddAllBlockstates(pack, branch)));
 
 			await Task.WhenAll(tasks);
-
 			await _continuousPackLogic.PackValidation(pack);
 
 			_continuousPackLogic.CommitPack(pack);
@@ -208,13 +259,10 @@ namespace Obsidian.API.Logic
 							asset = textureMapping.Assets.Find(x => x.TexturePaths.Any(y => y.MCVersion.IsMatchingVersion(version) && y.MCMeta && y.MCMetaPath == entryPath));
 							if (asset == null)
 							{
-								//Console.WriteLine($"Invalid asset: {entryPath}");
 								continue;
 							}
 							isMcMeta = true;
-							//Console.WriteLine($"Valid MCMeta asset: {entryPath}");
 						}
-						//else Console.WriteLine($"Valid texture asset: {entryPath}");
 
 						if (!isMcMeta)
 							await _textureBucket.UploadTexture(packId, asset.Id, Utils.WriteEntryToByteArray(entry), overwrite);
@@ -225,6 +273,11 @@ namespace Obsidian.API.Logic
 				archive.Dispose();
 
 				File.Delete(tempFilePath);
+
+				List<Task> tasks = new();
+				tasks.AddRange(packIds.Select(x => TriggerPackCheck(x, true)));
+				await Task.WhenAll(tasks);
+
 				Console.WriteLine("Finished importing pack!");
 			}).ConfigureAwait(false).GetAwaiter();
 		}
@@ -459,5 +512,8 @@ namespace Obsidian.API.Logic
 		void GeneratePacks(List<Guid> packIds);
 		Task ManualPush(Guid packId);
 		Task TriggerPackCheck(Guid packId, bool doFullCheck = false);
+		Task<List<TextureAsset>> GetSupportedTextureAssets(Pack pack, PackBranch? branch = null);
+		Task AddAllModels(Pack pack, PackBranch branch, List<TextureAsset>? supportedAssets = null);
+		Task AddAllBlockstates(Pack pack, PackBranch branch);
 	}
 }

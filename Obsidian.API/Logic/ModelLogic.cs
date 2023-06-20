@@ -13,12 +13,14 @@ namespace Obsidian.API.Logic
 		private readonly IModelMapRepository _modelMapRepository;
 		private readonly ITextureMapRepository _textureMapRepository;
 		private readonly IPackRepository _packRepository;
+		private readonly IPackLogic _packLogic;
 
-		public ModelLogic(IModelMapRepository modelMapRepository, ITextureMapRepository textureMapRepository, IPackRepository packRepository)
+		public ModelLogic(IModelMapRepository modelMapRepository, ITextureMapRepository textureMapRepository, IPackRepository packRepository, IPackLogic packLogic)
 		{
 			_modelMapRepository = modelMapRepository;
 			_textureMapRepository = textureMapRepository;
 			_packRepository = packRepository;
+			_packLogic = packLogic;
 		}
 
 		public async Task<bool> AddModel(string fileName, string name, List<Guid> packIds, BlockModel model, string path, MinecraftVersion minVersion, MinecraftVersion? maxVersion, bool overwrite = false,  bool overwriteVersion = false)
@@ -99,7 +101,29 @@ namespace Obsidian.API.Logic
 		}
 
 		public async Task<bool> DeleteAllModels(Guid mappingId)
-			=> await _modelMapRepository.ClearModels(mappingId);
+		{
+			Task clearTask = _modelMapRepository.ClearModels(mappingId);
+			Task<List<Pack>> packTask = _packRepository.GetAllPacks();
+			await Task.WhenAll(clearTask, packTask);
+
+			List<Guid> packIds = packTask.Result.Where(x => x.ModelMappingsId == mappingId).Select(x => x.Id).ToList();
+
+			List<Task> tasks = new();
+			tasks.AddRange(packIds.Select(NotifyModelsChanged));
+			await Task.WhenAll(tasks);
+		}
+
+		public async Task NotifyModelsChanged(Guid packId)
+		{
+			Pack? pack = await _packRepository.GetPackById(packId);
+			if (pack?.ModelMappingsId == null)
+				return;
+
+			List<TextureAsset> supportedAssets = await _packLogic.GetSupportedTextureAssets(pack);
+			List<Task> tasks = new();
+			tasks.AddRange(pack.Branches.Select(branch => _packLogic.AddAllModels(pack, branch, supportedAssets)));
+			await Task.WhenAll(tasks);
+		}
 	}
 
 	public interface IModelLogic
@@ -108,5 +132,6 @@ namespace Obsidian.API.Logic
 		Task<List<ModelAsset>> SearchForModels(Guid packId, string searchQuery);
 		Task<ModelAsset?> GetModel(Guid packId, string name, MinecraftVersion version);
 		Task<bool> DeleteAllModels(Guid mappingId);
+		Task NotifyModelsChanged(Guid packId);
 	}
 }

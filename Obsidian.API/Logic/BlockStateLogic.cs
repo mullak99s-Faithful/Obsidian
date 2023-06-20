@@ -1,6 +1,7 @@
 ﻿using Obsidian.API.Repository;
 using Obsidian.SDK.Enums;
 using Obsidian.SDK.Models;
+using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
 using Pack = Obsidian.SDK.Models.Pack;
 
@@ -10,11 +11,13 @@ namespace Obsidian.API.Logic
 	{
 		private readonly IBlockStateMapRepository _blockStateMapRepository;
 		private readonly IPackRepository _packRepository;
+		private readonly IPackLogic _packLogic;
 
-		public BlockStateLogic(IBlockStateMapRepository blockStateMapRepository, IPackRepository packRepository)
+		public BlockStateLogic(IBlockStateMapRepository blockStateMapRepository, IPackRepository packRepository, IPackLogic packLogic)
 		{
 			_blockStateMapRepository = blockStateMapRepository;
 			_packRepository = packRepository;
+			_packLogic = packLogic;
 		}
 
 		public async Task<bool> AddBlockState(string blockStateName, List<Guid> packIds, string fileName, byte[] blockStateFile, MinecraftVersion minVersion, MinecraftVersion? maxVersion)
@@ -94,7 +97,28 @@ namespace Obsidian.API.Logic
 		}
 
 		public async Task<bool> DeleteAllBlockStates(Guid mappingId)
-			=> await _blockStateMapRepository.ClearBlockStates(mappingId);
+		{
+			Task clearTask = _blockStateMapRepository.ClearBlockStates(mappingId);
+			Task<List<Pack>> packTask = _packRepository.GetAllPacks();
+			await Task.WhenAll(clearTask, packTask);
+
+			List<Guid> packIds = packTask.Result.Where(x => x.ModelMappingsId == mappingId).Select(x => x.Id).ToList();
+
+			List<Task> tasks = new();
+			tasks.AddRange(packIds.Select(NotifyBlockstatesChanged));
+			await Task.WhenAll(tasks);
+		}
+
+		public async Task NotifyBlockstatesChanged(Guid packId)
+		{
+			Pack? pack = await _packRepository.GetPackById(packId);
+			if (pack?.ModelMappingsId == null)
+				return;
+
+			List<Task> tasks = new();
+			tasks.AddRange(pack.Branches.Select(branch => _packLogic.AddAllBlockstates(pack, branch)));
+			await Task.WhenAll(tasks);
+		}
 	}
 
 	public interface IBlockStateLogic
@@ -103,5 +127,6 @@ namespace Obsidian.API.Logic
 		Task<List<BlockState>> SearchForBlockStates(Guid packId, string searchQuery);
 		Task<BlockState?> GetBlockState(Guid packId, string name, MinecraftVersion version);
 		Task<bool> DeleteAllBlockStates(Guid mappingId);
+		Task NotifyBlockstatesChanged(Guid packId);
 	}
 }

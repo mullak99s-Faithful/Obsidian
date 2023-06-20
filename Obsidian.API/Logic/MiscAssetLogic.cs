@@ -10,11 +10,15 @@ namespace Obsidian.API.Logic
 	{
 		private readonly IPackRepository _packRepository;
 		private readonly IMiscBucket _miscBucket;
+		private readonly IContinuousPackLogic _continuousPackLogic;
+		private readonly IPackLogic _packLogic;
 
-		public MiscAssetLogic(IPackRepository packRepository, IMiscBucket miscBucket)
+		public MiscAssetLogic(IPackRepository packRepository, IMiscBucket miscBucket, IContinuousPackLogic continuousPackLogic, IPackLogic packLogic)
 		{
 			_packRepository = packRepository;
 			_miscBucket = miscBucket;
+			_continuousPackLogic = continuousPackLogic;
+			_packLogic = packLogic;
 		}
 
 		public async Task AddMiscAsset(Pack pack, string name, MinecraftVersion minVersion, MinecraftVersion maxVersion, byte[] zipBytes, bool overwrite = true)
@@ -30,6 +34,12 @@ namespace Obsidian.API.Logic
 				_miscBucket.UploadMisc(miscAsset, overwrite)
 			};
 			await Task.WhenAll(tasks);
+
+			IEnumerable<PackBranch> matchingBranches = pack.Branches.Where(x => miscAsset.MCVersion.IsMatchingVersion(x.Version));
+
+			List<Task> addMiscTasks = new();
+			addMiscTasks.AddRange(matchingBranches.Select(x => _continuousPackLogic.AddMisc(pack, x)));
+			Task.WhenAll(addMiscTasks).ConfigureAwait(false).GetAwaiter();
 		}
 
 		public async Task DeleteMiscAsset(Pack pack, Guid assetId)
@@ -43,6 +53,7 @@ namespace Obsidian.API.Logic
 					RemoveMiscIdFromPack(pack, assetId)
 				};
 				await Task.WhenAll(tasks);
+				_packLogic.TriggerPackCheck(pack.Id, true).ConfigureAwait(false).GetAwaiter();
 			}
 			else if (pack.MiscAssetIds.Contains(assetId))
 				await RemoveMiscIdFromPack(pack, assetId);

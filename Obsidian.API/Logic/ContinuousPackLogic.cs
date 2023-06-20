@@ -192,16 +192,24 @@ namespace Obsidian.API.Logic
 			}
 		}
 
-		public async Task AddMisc(Pack pack)
+		public async Task AddMisc(Pack pack, PackBranch? branch = null)
 		{
 			List<Task<MiscAsset?>> downloadTasks = pack.MiscAssetIds.Select(id => _miscBucket.DownloadMisc(id)).ToList();
 			await Task.WhenAll(downloadTasks);
 
 			List<Task> ioTasks = new();
-			foreach (PackBranch branch in pack.Branches)
+			List<PackBranch> branches = new();
+
+			if (branch == null)
+				branches.AddRange(pack.Branches);
+			else
+				branches.Add(branch);
+
+			foreach (PackBranch br in branches)
 			{
-				foreach (MiscAsset? asset in downloadTasks.Select(task => task.Result).Where(x => x != null && x.MCVersion.IsMatchingVersion(branch.Version)))
-					ioTasks.Add(asset!.Extract(GetBranchPath(pack, branch)));
+				ioTasks.AddRange(downloadTasks.Select(task => task.Result)
+					.Where(x => x != null && x.MCVersion.IsMatchingVersion(br.Version))
+					.Select(asset => asset!.Extract(GetBranchPath(pack, br))));
 			}
 			await Task.WhenAll(ioTasks);
 		}
@@ -209,8 +217,12 @@ namespace Obsidian.API.Logic
 		public void PurgeBranches(Pack pack)
 			=> Parallel.ForEach(pack.Branches, branch => PurgeBranch(pack, branch));
 
-		public void PurgeBranch(Pack pack, PackBranch branch)
-			=> Utils.FastDeleteAll(Path.Combine(GetBranchPath(pack, branch), "assets"), false);
+		public void PurgeBranch(Pack pack, PackBranch branch, string? subFolder = null)
+		{
+			string path = subFolder == null ? Path.Combine(GetBranchPath(pack, branch), "assets") : Path.Combine(GetBranchPath(pack, branch), subFolder);
+			if (Directory.Exists(path))
+				Utils.FastDeleteAll(path);
+		}
 
 		public async Task PackAutomation(Pack pack)
 		{
@@ -225,7 +237,7 @@ namespace Obsidian.API.Logic
 			List<Task> automationTasks = new();
 
 			string destination = GetBranchPath(pack, branch);
-			automationTasks.Add(File.WriteAllTextAsync(Path.Combine(destination, "pack.mcmeta"), pack.CreatePackMCMeta(branch), Encoding.UTF8));  // pack.mcmeta
+			automationTasks.Add(File.WriteAllTextAsync(Path.Combine(destination, "pack.mcmeta"), pack.CreatePackMCMeta(branch), Encoding.UTF8)); // pack.mcmeta
 
 			// pack.png
 			byte[]? packPng = await _packPngLogic.DownloadPackPng(pack.Id);
@@ -246,13 +258,29 @@ namespace Obsidian.API.Logic
 			await Task.WhenAll(automationTasks);
 		}
 
+		public void DeletePackMCMeta(Pack pack, PackBranch branch)
+		{
+			string packMetaPath = Path.Combine(GetBranchPath(pack, branch), "pack.mcmeta");
+
+			if (File.Exists(packMetaPath))
+				File.Delete(packMetaPath);
+		}
+
+		public void DeletePackPng(Pack pack, PackBranch branch)
+		{
+			string packPngPath = Path.Combine(GetBranchPath(pack, branch), "pack.png");
+
+			if (File.Exists(packPngPath))
+				File.Delete(packPngPath);
+		}
+
 		public async Task PackValidation(Pack pack)
 		{
 			IEnumerable<Task> validationTasks = pack.Branches.Select(branch => BranchValidation(pack, branch));
 			await Task.WhenAll(validationTasks);
 		}
 
-		private async Task BranchValidation(Pack pack, PackBranch branch)
+		public async Task BranchValidation(Pack pack, PackBranch branch)
 		{
 			var response = await _toolsLogic.GetMinecraftJavaAssets(branch.GetVersion(), true);
 
@@ -402,8 +430,7 @@ namespace Obsidian.API.Logic
 					gitRepo.Commit(message, author, author);
 				}
 				else
-					Console.WriteLine(
-						$"[ContinuousPackLogic] No changes for {pack.Name} - {branch.Name}: Skipping commit!");
+					Console.WriteLine($"[ContinuousPackLogic] No changes for {pack.Name} - {branch.Name}: Skipping commit!");
 
 				// Push the commit to the remote repository (inc. and missed pushes due to any errors)
 				// TODO: Needs an alternate way to set this since branch names can be changed
@@ -447,12 +474,16 @@ namespace Obsidian.API.Logic
 		Task AddTexture(Pack pack, TextureAsset texture);
 		Task AddModel(Pack pack, ModelAsset asset, List<TextureAsset>? textureAssets = null);
 		Task AddBlockState(Pack pack, BlockState blockState);
-		Task AddMisc(Pack pack);
+		Task AddMisc(Pack pack, PackBranch? branch = null);
 		Task PackAutomation(Pack pack);
+		Task PackBranchAutomation(Pack pack, PackBranch branch);
+		void DeletePackMcMeta(Pack pack, PackBranch branch);
+		void DeletePackPng(Pack pack, PackBranch branch);
 		Task PackValidation(Pack pack);
+		Task BranchValidation(Pack pack, PackBranch branch);
 		void CommitPack(Pack pack, string? overrideAutoMessage = null);
 		void CommitBranch(Pack pack, PackBranch branch, string? overrideAutoMessage = null);
 		void PurgeBranches(Pack pack);
-		void PurgeBranch(Pack pack, PackBranch branch);
+		void PurgeBranch(Pack pack, PackBranch branch, string? subFolder = null);
 	}
 }

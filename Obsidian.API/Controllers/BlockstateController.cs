@@ -43,7 +43,14 @@ namespace Obsidian.API.Controllers
 			await blockStateFile.CopyToAsync(ms);
 			byte[] blockStateBytes = ms.ToArray();
 
-			return await _logic.AddBlockState(blockStateName, packIdList, blockStateFile.FileName, blockStateBytes, minVersion, maxVersion) ? Ok() : BadRequest("Invalid");
+			bool success = await _logic.AddBlockState(blockStateName, packIdList, blockStateFile.FileName, blockStateBytes, minVersion, maxVersion);
+			if (success)
+			{
+				List<Task> tasks = new();
+				tasks.AddRange(packIdList.Select(_logic.NotifyBlockstatesChanged));
+				await Task.WhenAll(tasks);
+			}
+			return success ? Ok() : BadRequest("Invalid");
 		}
 
 		[HttpPost("Import/FromZip")]
@@ -82,6 +89,11 @@ namespace Obsidian.API.Controllers
 					}
 				}
 			}
+
+			List<Task> tasks = new();
+			tasks.AddRange(packIdList.Select(_logic.NotifyBlockstatesChanged));
+			await Task.WhenAll(tasks);
+
 			return Ok();
 		}
 

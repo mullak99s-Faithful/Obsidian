@@ -39,18 +39,5 @@ namespace Obsidian.API.Controllers
 			await _packLogic.ImportPack(version, packIdList, pack, overwrite.Value);
 			return Ok();
 		}
-
-		[HttpGet("GeneratePacks")]
-		[Authorize("write:generate-packs")]
-		[ProducesResponseType(typeof(IActionResult), 200)]
-		public IActionResult GenerateAllPacks([FromQuery] string packIds) // Temporary
-		{
-			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
-			if (packIdList.Count == 0)
-				return BadRequest("Please provide pack ids");
-
-			_packLogic.GeneratePacks(packIdList);
-			return Ok();
-		}
 	}
 }

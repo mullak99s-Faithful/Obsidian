@@ -50,6 +50,12 @@ namespace Obsidian.API.Controllers
 				return BadRequest("Invalid model!");
 
 			bool success = await _logic.AddModel(modelFile.FileName, modelName, packIdList, blockModel, path, minVersion, maxVersion);
+			if (success)
+			{
+				List<Task> tasks = new();
+				tasks.AddRange(packIdList.Select(_logic.NotifyModelsChanged));
+				await Task.WhenAll(tasks);
+			}
 			return success ? Ok() : BadRequest("Invalid");
 		}
 
@@ -103,6 +109,11 @@ namespace Obsidian.API.Controllers
 					}
 				}
 			}
+
+			List<Task> tasks = new();
+			tasks.AddRange(packIdList.Select(_logic.NotifyModelsChanged));
+			await Task.WhenAll(tasks);
+
 			return Ok();
 		}
 
