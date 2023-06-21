@@ -9,7 +9,8 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace Obsidian.API.Controllers
 {
 	[ApiController]
-	[Route("api/[controller]")]
+	[ApiVersion("1.0")]
+	[Route("api/v{apiVersion:apiVersion}/[controller]")]
 	[SwaggerResponse(401, "You are not authorized to access this")]
 	[SwaggerResponse(500, "An unexpected error occurred")]
 	public class BranchController : ControllerBase

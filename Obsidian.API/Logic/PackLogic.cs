@@ -8,7 +8,6 @@ using System.Text;
 using Obsidian.API.Extensions;
 using Obsidian.SDK.Models.Tools;
 using Pack = Obsidian.SDK.Models.Pack;
-using System.Threading.Tasks;
 
 namespace Obsidian.API.Logic
 {

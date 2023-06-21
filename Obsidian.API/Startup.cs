@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Http;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Versioning;
+using Microsoft.Extensions.Http;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 using Obsidian.API.Abstractions;
@@ -114,13 +116,21 @@ namespace Obsidian.API
 			services.AddSingleton<IPackValidationLogic, PackValidationLogic>();
 
 			// Autorun
-			services.AddHostedService<ScheduledService>();
+			//services.AddHostedService<ScheduledService>();
 
 			BuildServiceProviderAsync(services).Wait();
 
+			services.AddApiVersioning(options =>
+			{
+				options.ReportApiVersions = true;
+				options.DefaultApiVersion = new ApiVersion(1, 0);
+				options.AssumeDefaultVersionWhenUnspecified = true;
+				options.ApiVersionReader = new MediaTypeApiVersionReader();
+			});
+
 			services.AddSwaggerGen(c =>
 			{
-				c.SwaggerDoc("v1", new OpenApiInfo { Title = "Obsidian", Version = "v1" });
+				c.SwaggerDoc("v1.0", new OpenApiInfo { Title = "Obsidian", Version = "v1.0" });
 				c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
 				{
 					Name = "Authorization",
@@ -152,7 +162,7 @@ namespace Obsidian.API
 			app.UseSwaggerUI(c =>
 			{
 				c.DefaultModelRendering(ModelRendering.Model);
-				c.SwaggerEndpoint("/swagger/v1/swagger.json", "Obsidian.API");
+				c.SwaggerEndpoint("/swagger/v1.0/swagger.json", "Obsidian.API");
 				c.OAuthClientId(AuthConfig.ClientId);
 			});
 

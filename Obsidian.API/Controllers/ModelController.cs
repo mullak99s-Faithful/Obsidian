@@ -7,12 +7,12 @@ using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Minecraft;
 using Swashbuckle.AspNetCore.Annotations;
 using System.IO.Compression;
-using Obsidian.API.Extensions;
 
 namespace Obsidian.API.Controllers
 {
 	[ApiController]
-	[Route("api/[controller]")]
+	[ApiVersion("1.0")]
+	[Route("api/v{apiVersion:apiVersion}/[controller]")]
 	[SwaggerResponse(401, "You are not authorized to access this")]
 	[SwaggerResponse(500, "An unexpected error occurred")]
 	public class ModelController : ControllerBase
