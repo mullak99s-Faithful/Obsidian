@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Obsidian.API.Services;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
-using Obsidian.API.Services;
 
 namespace Obsidian.API.Controllers
 {

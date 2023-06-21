@@ -7,17 +7,16 @@ namespace Obsidian.API.Services
 {
 	public class ScheduledService : BackgroundService
 	{
-		private readonly TimeSpan _scheduledTime = new(0, 0, 0);
+		private readonly DateTime _scheduledTime;
 		private readonly List<Func<Task>> _scheduledTasks = new();
 		private readonly object _lock = new();
 
-		private readonly IPackRepository _packRepository;
-		private readonly IContinuousPackLogic _continuousPackLogic;
+		private readonly IServiceScopeFactory _scopeFactory;
 
-		public ScheduledService(IPackRepository packRepository, IContinuousPackLogic continuousPackLogic)
+		public ScheduledService(IServiceScopeFactory scopeFactory)
 		{
-			_packRepository = packRepository;
-			_continuousPackLogic = continuousPackLogic;
+			_scopeFactory = scopeFactory;
+			_scheduledTime = DateTime.Today.AddDays(1);
 		}
 
 		public void AddScheduledTask(Func<Task> task)
@@ -35,19 +34,20 @@ namespace Obsidian.API.Services
 		{
 			while (!stoppingToken.IsCancellationRequested)
 			{
-				TimeSpan currentTime = DateTime.Now.TimeOfDay;
+				DateTime currentTime = DateTime.Now;
 				TimeSpan timeUntilScheduledTime = _scheduledTime - currentTime;
 
 				if (timeUntilScheduledTime < TimeSpan.Zero)
 					timeUntilScheduledTime = TimeSpan.Zero;
 
+				Console.WriteLine($"Schedule will run at {_scheduledTime:hh\\:mm tt} (UTC). This is in {timeUntilScheduledTime.Hours}h {timeUntilScheduledTime.Minutes}m {timeUntilScheduledTime.Seconds}s.");
 				await Task.Delay(timeUntilScheduledTime, stoppingToken);
 
 				// Call your desired method here
 				await ExecuteScheduledTasks();
 
 				// Schedule the task for the next day at the same time
-				DateTime nextExecutionTime = DateTime.Today.AddDays(1).Add(_scheduledTime);
+				DateTime nextExecutionTime = DateTime.Today.AddDays(1).Add(_scheduledTime.TimeOfDay);
 				TimeSpan delayUntilNextExecution = nextExecutionTime - DateTime.Now;
 				await Task.Delay(delayUntilNextExecution, stoppingToken);
 			}
@@ -71,9 +71,14 @@ namespace Obsidian.API.Services
 
 		private async Task CommitPacks()
 		{
-			List<Pack> packs = await _packRepository.GetAllPacks();
+			using IServiceScope scope = _scopeFactory.CreateScope();
+			IPackRepository packRepository = scope.ServiceProvider.GetRequiredService<IPackRepository>();
+			IContinuousPackLogic continuousPackLogic = scope.ServiceProvider.GetRequiredService<IContinuousPackLogic>();
+
+			List<Pack> packs = await packRepository.GetAllPacks();
 			foreach (Pack pack in packs)
-				_continuousPackLogic.CommitPack(pack);
+				continuousPackLogic.CommitPack(pack);
 		}
 	}
+
 }

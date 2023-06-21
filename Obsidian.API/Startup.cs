@@ -116,7 +116,7 @@ namespace Obsidian.API
 			services.AddSingleton<IPackValidationLogic, PackValidationLogic>();
 
 			// Autorun
-			//services.AddHostedService<ScheduledService>();
+			services.AddHostedService<ScheduledService>();
 
 			BuildServiceProviderAsync(services).Wait();
 
