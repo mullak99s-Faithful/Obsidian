@@ -95,6 +95,7 @@ namespace Obsidian.API
 			services.AddScoped<IBlockStateMapRepository, BlockStateMapRepository>();
 			services.AddScoped<IPackRepository, PackRepository>();
 			services.AddScoped<IVersionAssetsRepository, VersionAssetsRepository>();
+			services.AddScoped<ITextureMetadataRepository, TextureMetadataRepository>();
 
 			// Buckets
 			services.AddScoped<ITextureBucket, TextureBucket>();

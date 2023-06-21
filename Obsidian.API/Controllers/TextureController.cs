@@ -26,7 +26,7 @@ namespace Obsidian.API.Controllers
 		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:upload-texture")]
-		public async Task<IActionResult> UploadTexture([FromRoute] string name, [FromQuery] string packIds, IFormFile textureFile, IFormFile? mcMetaFile)
+		public async Task<IActionResult> UploadTexture([FromRoute] string name, [FromQuery] string packIds, IFormFile textureFile, IFormFile? mcMetaFile, string? credits, bool overwrite = false)
 		{
 			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
 
@@ -37,7 +37,7 @@ namespace Obsidian.API.Controllers
 			if (packIdList.Count == 0)
 				return BadRequest("Please provide pack ids");
 
-			return await _logic.AddTexture(name, packIdList, textureFile, mcMetaFile) ? Ok() : BadRequest("Invalid");
+			return await _logic.AddTexture(name, packIdList, textureFile, mcMetaFile, credits, overwrite) ? Ok() : BadRequest("Invalid");
 		}
 
 		[HttpPost("Upload/ById/{assetId}")]
@@ -45,7 +45,7 @@ namespace Obsidian.API.Controllers
 		[RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
 		[ProducesResponseType(typeof(IActionResult), 200)]
 		[Authorize("write:upload-texture")]
-		public async Task<IActionResult> UploadTexture([FromRoute] Guid assetId, [FromQuery] string packIds, IFormFile textureFile, IFormFile? mcMetaFile)
+		public async Task<IActionResult> UploadTexture([FromRoute] Guid assetId, [FromQuery] string packIds, IFormFile textureFile, IFormFile? mcMetaFile, string? credits, bool overwrite = false)
 		{
 			var packIdList = packIds.Split(',').Select(Guid.Parse).ToList();
 
@@ -56,7 +56,7 @@ namespace Obsidian.API.Controllers
 			if (packIdList.Count == 0)
 				return BadRequest("Please provide pack ids");
 
-			return await _logic.AddTexture(assetId, packIdList, textureFile, mcMetaFile) ? Ok() : BadRequest("Invalid");
+			return await _logic.AddTexture(assetId, packIdList, textureFile, mcMetaFile, credits, overwrite) ? Ok() : BadRequest("Invalid");
 		}
 
 		[HttpGet("Search/{packId}")]
