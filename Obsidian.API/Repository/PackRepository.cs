@@ -1,5 +1,4 @@
-﻿using LibGit2Sharp;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using Obsidian.SDK.Models;
 using Pack = Obsidian.SDK.Models.Pack;
 

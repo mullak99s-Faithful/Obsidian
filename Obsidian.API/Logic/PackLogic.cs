@@ -13,7 +13,7 @@ namespace Obsidian.API.Logic
 {
 	public class PackLogic : IPackLogic
 	{
-		private readonly IPackPngLogic _packPngLogic;
+		private readonly IPackPngBucket _packPngBucket;
 		private readonly ITextureMapRepository _textureMapRepository;
 		private readonly IModelMapRepository _modelMapRepository;
 		private readonly IBlockStateMapRepository _blockStateMapRepository;
@@ -24,9 +24,9 @@ namespace Obsidian.API.Logic
 		private readonly IContinuousPackLogic _continuousPackLogic;
 		private readonly IPackValidationLogic _packValidationLogic;
 
-		public PackLogic(IPackPngLogic packPngLogic, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackRepository packRepository, ITextureBucket textureBucket, IMiscBucket miscBucket, IToolsLogic toolsLogic, IContinuousPackLogic continuousPackLogic, IPackValidationLogic packValidationLogic)
+		public PackLogic(IPackPngBucket packPngBucket, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackRepository packRepository, ITextureBucket textureBucket, IMiscBucket miscBucket, IToolsLogic toolsLogic, IContinuousPackLogic continuousPackLogic, IPackValidationLogic packValidationLogic)
 		{
-			_packPngLogic = packPngLogic;
+			_packPngBucket = packPngBucket;
 			_textureMapRepository = textureMapRepository;
 			_modelMapRepository = modelMapRepository;
 			_blockStateMapRepository = blockStateMapRepository;
@@ -452,7 +452,7 @@ namespace Obsidian.API.Logic
 			};
 
 			// pack.png
-			byte[]? packPng = await _packPngLogic.DownloadPackPng(pack.Id);
+			byte[]? packPng = await _packPngBucket.DownloadPackPng(pack.Id);
 			if (packPng is { Length: > 0 })
 				automationTasks.Add(File.WriteAllBytesAsync(Path.Combine(destination, "pack.png"), packPng));
 

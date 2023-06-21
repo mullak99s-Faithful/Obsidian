@@ -7,11 +7,13 @@ namespace Obsidian.API.Logic
 	{
 		private readonly IPackRepository _packRepository;
 		private readonly IPackPngBucket _packPngBucket;
+		private readonly IContinuousPackLogic _continuousPackLogic;
 
-		public PackPngLogic(IPackRepository packRepository, IPackPngBucket packPngBucket)
+		public PackPngLogic(IPackRepository packRepository, IPackPngBucket packPngBucket, IContinuousPackLogic continuousPackLogic)
 		{
 			_packRepository = packRepository;
 			_packPngBucket = packPngBucket;
+			_continuousPackLogic = continuousPackLogic;
 		}
 
 		public async Task<bool> UploadPackPng(Guid packId, IFormFile packPng, bool overwrite)
@@ -31,9 +33,9 @@ namespace Obsidian.API.Logic
 
 			if (success)
 			{
-				//List<Task> tasks = new();
-				//tasks.AddRange(pack.Branches.Select(x => _continuousPackLogic.PackBranchAutomation(pack, x)));
-				//Task.WhenAll(tasks).ConfigureAwait(false).GetAwaiter();
+				List<Task> tasks = new();
+				tasks.AddRange(pack.Branches.Select(x => _continuousPackLogic.PackBranchAutomation(pack, x)));
+				Task.WhenAll(tasks).ConfigureAwait(false).GetAwaiter();
 			}
 			return success;
 		}
@@ -51,9 +53,9 @@ namespace Obsidian.API.Logic
 			if (pack == null || !deleteTask.Result)
 				return false;
 
-			//List<Task> tasks = new();
-			//tasks.AddRange(pack.Branches.Select(x => Task.Run(() => _continuousPackLogic.DeletePackPng(pack, x))));
-			//Task.WhenAll(tasks).ConfigureAwait(false).GetAwaiter();
+			List<Task> tasks = new();
+			tasks.AddRange(pack.Branches.Select(x => Task.Run(() => _continuousPackLogic.DeletePackPng(pack, x))));
+			Task.WhenAll(tasks).ConfigureAwait(false).GetAwaiter();
 
 			return true;
 		}

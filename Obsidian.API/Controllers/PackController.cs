@@ -19,18 +19,18 @@ namespace Obsidian.API.Controllers
 		private readonly ITextureMapRepository _textureMapRepository;
 		private readonly IModelMapRepository _modelMapRepository;
 		private readonly IBlockStateMapRepository _blockStateMapRepository;
-		private readonly IPackPngLogic _packPngLogic;
+		private readonly IPackPngBucket _packPngBucket;
 		private readonly IMiscAssetLogic _miscAssetLogic;
 		private readonly IPackLogic _packLogic;
 		private readonly ILogger<PackController> _logger;
 
-		public PackController(IPackRepository packRepository, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackPngLogic packPngLogic, IMiscAssetLogic miscAssetLogic, IPackLogic packLogic, ILogger<PackController> logger)
+		public PackController(IPackRepository packRepository, ITextureMapRepository textureMapRepository, IModelMapRepository modelMapRepository, IBlockStateMapRepository blockStateMapRepository, IPackPngBucket packPngBucket, IMiscAssetLogic miscAssetLogic, IPackLogic packLogic, ILogger<PackController> logger)
 		{
 			_packRepository = packRepository;
 			_textureMapRepository = textureMapRepository;
 			_modelMapRepository = modelMapRepository;
 			_blockStateMapRepository = blockStateMapRepository;
-			_packPngLogic = packPngLogic;
+			_packPngBucket = packPngBucket;
 			_miscAssetLogic = miscAssetLogic;
 			_packLogic = packLogic;
 			_logger = logger;
@@ -138,7 +138,7 @@ namespace Obsidian.API.Controllers
 		[Authorize("write:edit-pack")]
 		public async Task<IActionResult> AddPackPNG(Guid packId, IFormFile packPng, bool overwrite = true)
 		{
-			bool success = await _packPngLogic.UploadPackPng(packId, packPng, overwrite);
+			bool success = await _packPngBucket.UploadPackPng(packId, await Utils.GetBytesFromFormFileAsync(packPng), overwrite);
 			if (!success)
 				return BadRequest();
 			return Ok();
@@ -149,7 +149,7 @@ namespace Obsidian.API.Controllers
 		[Authorize("write:edit-pack")]
 		public async Task<IActionResult> DeletePackPNG(Guid packId)
 		{
-			bool success = await _packPngLogic.DeletePackPng(packId);
+			bool success = await _packPngBucket.DeletePackPng(packId);
 			if (!success)
 				return BadRequest();
 			return Ok();

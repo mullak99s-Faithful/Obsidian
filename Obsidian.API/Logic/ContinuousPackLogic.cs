@@ -20,18 +20,18 @@ namespace Obsidian.API.Logic
 		private readonly ITextureMapRepository _textureMapRepository;
 		private readonly IPackRepository _packRepository;
 		private readonly IMiscBucket _miscBucket;
-		private readonly IPackPngLogic _packPngLogic;
+		private readonly IPackPngBucket _packPngBucket;
 		private readonly IToolsLogic _toolsLogic;
 		private readonly IPackValidationLogic _packValidationLogic;
 		private readonly IGitOptions _gitOptions;
 
-		public ContinuousPackLogic(ITextureBucket textureBucket, ITextureMapRepository textureMapRepository, IPackRepository packRepository, IMiscBucket miscBucket, IPackPngLogic packPngLogic, IToolsLogic toolsLogic, IPackValidationLogic packValidationLogic, IGitOptions gitOptions)
+		public ContinuousPackLogic(ITextureBucket textureBucket, ITextureMapRepository textureMapRepository, IPackRepository packRepository, IMiscBucket miscBucket, IPackPngBucket packPngBucket, IToolsLogic toolsLogic, IPackValidationLogic packValidationLogic, IGitOptions gitOptions)
 		{
 			_textureBucket = textureBucket;
 			_textureMapRepository = textureMapRepository;
 			_packRepository = packRepository;
 			_miscBucket = miscBucket;
-			_packPngLogic = packPngLogic;
+			_packPngBucket = packPngBucket;
 			_toolsLogic = toolsLogic;
 			_packValidationLogic = packValidationLogic;
 			_gitOptions = gitOptions;
@@ -240,7 +240,7 @@ namespace Obsidian.API.Logic
 			automationTasks.Add(File.WriteAllTextAsync(Path.Combine(destination, "pack.mcmeta"), pack.CreatePackMCMeta(branch), Encoding.UTF8)); // pack.mcmeta
 
 			// pack.png
-			byte[]? packPng = await _packPngLogic.DownloadPackPng(pack.Id);
+			byte[]? packPng = await _packPngBucket.DownloadPackPng(pack.Id);
 			if (packPng is { Length: > 0 })
 				automationTasks.Add(File.WriteAllBytesAsync(Path.Combine(destination, "pack.png"), packPng));
 
