@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
 using Obsidian.SDK.Models;
 
 namespace Obsidian.API.Repository
@@ -13,15 +14,15 @@ namespace Obsidian.API.Repository
 		}
 
 		#region Create
-		public async Task<bool> AddOrUpdate(Guid mapId, Guid assetId, TextureMetadata metadata)
+		public async Task<bool> AddOrUpdate(Guid packId, Guid assetId, TextureMetadata metadata)
 		{
-			var existingAsset = await GetTexMeta(mapId, assetId);
+			var existingAsset = await GetTexMeta(packId, assetId);
 			if (existingAsset == null)
 			{
 				TexMeta texMeta = new()
 				{
 					AssetId = assetId,
-					MapId = mapId,
+					PackId = packId,
 					Metadata = metadata
 				};
 				await _collection.InsertOneAsync(texMeta);
@@ -32,16 +33,16 @@ namespace Obsidian.API.Repository
 		#endregion
 
 		#region Read
-		public async Task<TextureMetadata?> GetMetadata(Guid mapId, Guid assetId)
-			=> (await GetTexMeta(mapId, assetId))?.Metadata;
+		public async Task<TextureMetadata?> GetMetadata(Guid packId, Guid assetId)
+			=> (await GetTexMeta(packId, assetId))?.Metadata;
 
-		private async Task<TexMeta?> GetTexMeta(Guid mapId, Guid assetId)
+		private async Task<TexMeta?> GetTexMeta(Guid packId, Guid assetId)
 		{
 			try
 			{
 				var filterBuilder = Builders<TexMeta>.Filter;
 				var filter = filterBuilder.And(
-				filterBuilder.Eq(t => t.AssetId, mapId),
+				filterBuilder.Eq(t => t.PackId, packId),
 					filterBuilder.Eq(t => t.AssetId, assetId)
 				);
 
@@ -59,7 +60,7 @@ namespace Obsidian.API.Repository
 
 		private async Task<bool> UpdateTexMeta(TexMeta meta, TextureMetadata newMeta)
 		{
-			var result = await _collection.UpdateOneAsync(filter: t => t.AssetId == meta.AssetId && t.MapId == meta.MapId,
+			var result = await _collection.UpdateOneAsync(filter: t => t.AssetId == meta.AssetId && t.PackId == meta.PackId,
 				update: Builders<TexMeta>.Update.Set(t => t.Metadata, newMeta)
 			);
 
@@ -68,13 +69,13 @@ namespace Obsidian.API.Repository
 		#endregion
 
 		#region Delete
-		public async Task<bool> DeleteMetadata(Guid mapId, Guid assetId)
+		public async Task<bool> DeleteMetadata(Guid packId, Guid assetId)
 		{
 			try
 			{
 				var filterBuilder = Builders<TexMeta>.Filter;
 				var filter = filterBuilder.And(
-					filterBuilder.Eq(t => t.AssetId, mapId),
+					filterBuilder.Eq(t => t.AssetId, packId),
 					filterBuilder.Eq(t => t.AssetId, assetId)
 				);
 
@@ -87,15 +88,15 @@ namespace Obsidian.API.Repository
 			}
 		}
 
-		public async Task<bool> DeleteAllMetadata(Guid? mapId = null)
+		public async Task<bool> DeleteAllMetadata(Guid? packId = null)
 		{
 			try
 			{
-				if (mapId != null)
+				if (packId != null)
 				{
 					var filterBuilder = Builders<TexMeta>.Filter;
 					var filter = filterBuilder.And(
-						filterBuilder.Eq(t => t.AssetId, mapId)
+						filterBuilder.Eq(t => t.AssetId, packId)
 					);
 
 					var result = await _collection.DeleteManyAsync(filter);
@@ -119,19 +120,20 @@ namespace Obsidian.API.Repository
 	public interface ITextureMetadataRepository
 	{
 		// Create
-		Task<bool> AddOrUpdate(Guid mapId, Guid assetId, TextureMetadata metadata);
+		Task<bool> AddOrUpdate(Guid packId, Guid assetId, TextureMetadata metadata);
 
 		// Read
-		Task<TextureMetadata?> GetMetadata(Guid mapId, Guid assetId);
+		Task<TextureMetadata?> GetMetadata(Guid packId, Guid assetId);
 
 		// Delete
-		Task<bool> DeleteMetadata(Guid mapId, Guid assetId);
-		Task<bool> DeleteAllMetadata(Guid? mapId = null);
+		Task<bool> DeleteMetadata(Guid packId, Guid assetId);
+		Task<bool> DeleteAllMetadata(Guid? packId = null);
 	}
 
 	internal class TexMeta
 	{
-		public Guid MapId { get; set; }
+		public ObjectId Id { get; set; }
+		public Guid PackId { get; set; }
 		public Guid AssetId { get; set; }
 		public TextureMetadata? Metadata { get; set; }
 	}

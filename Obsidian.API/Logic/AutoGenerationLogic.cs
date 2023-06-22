@@ -4,9 +4,11 @@ using Obsidian.SDK.Enums;
 using Obsidian.SDK.Extensions;
 using Obsidian.SDK.Models;
 using Obsidian.SDK.Models.Assets;
+using Obsidian.SDK.Models.Import;
 using Obsidian.SDK.Models.Mappings;
 using Obsidian.SDK.Models.Tools;
 using System.IO.Compression;
+using System.Text.RegularExpressions;
 
 namespace Obsidian.API.Logic
 {
@@ -145,7 +147,7 @@ namespace Obsidian.API.Logic
 		private List<string> GenerateNamesForTexture(string texturePath)
 		{
 			texturePath = texturePath.Replace("\\", "/");
-			string? fileName = Path.GetFileNameWithoutExtension(texturePath);
+			string fileName = Path.GetFileNameWithoutExtension(texturePath);
 			if (string.IsNullOrWhiteSpace(fileName))
 				return new List<string>();
 
@@ -282,11 +284,64 @@ namespace Obsidian.API.Logic
 				finalFileName
 			};
 		}
+
+		public List<Credits> ParseCreditsTxt(string[] lines)
+		{
+			List<Credits> textureList = new();
+			string headerPath = "";
+
+			foreach (var line in lines)
+			{
+				// Extract the path from header
+				if (line.StartsWith("=="))
+				{
+					var match = Regex.Match(line, @"\((.*?)\)");
+					if (match.Success)
+					{
+						headerPath = match.Groups[1].Value;
+					}
+					continue;
+				}
+
+				var parts = line.Split(":");
+				if (parts.Length < 2)
+					continue; // skip lines without ':'
+
+				var pathPart = parts[0];
+				var credit = parts[1].Trim();
+
+				var matchPath = Regex.Match(pathPart, @"\((.*?)\)");
+				if (matchPath.Success)
+				{
+					var path = matchPath.Groups[1].Value;
+					// Remove the first "<whatever>/"
+					var indexOfSlash = path.IndexOf('/');
+					if (indexOfSlash > -1 && path.Length > indexOfSlash + 1)
+					{
+						path = path.Substring(indexOfSlash + 1);
+					}
+					var texturePath = $"{headerPath}/{path}";
+
+					var texture = new Credits
+					{
+						TexturePath = texturePath.Replace('/', '\\').TrimStart('\\'),
+						Credit = credit
+					};
+					textureList.Add(texture);
+				}
+				else
+				{
+					Console.WriteLine($"Invalid line content: {pathPart} ({headerPath})");
+				}
+			}
+			return textureList;
+		}
 	}
 
 	public interface IAutoGenerationLogic
 	{
 		Task<List<TextureAsset>> GenerateMissingMappings(Guid packId, MinecraftVersion version);
 		Task<List<TextureAsset>> GenerateOptifineMappings(Guid packId, MinecraftVersion version, IFormFile packZipFile);
+		List<Credits> ParseCreditsTxt(string[] lines);
 	}
 }

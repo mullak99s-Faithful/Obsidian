@@ -61,5 +61,34 @@ namespace Obsidian.API.Controllers
 				return StatusCode(500, ex.Message);
 			}
 		}
+
+		[HttpPost("parsecredits")]
+		public async Task<IActionResult> ParseCredits(IFormFile file)
+		{
+			try
+			{
+				if (file.Length == 0)
+				{
+					return BadRequest("No file was uploaded.");
+				}
+
+				using var reader = new StreamReader(file.OpenReadStream());
+				var lines = new List<string>();
+
+				while (!reader.EndOfStream)
+				{
+					var line = await reader.ReadLineAsync();
+					if (line != null)
+						lines.Add(line);
+				}
+
+				var credits = _autoGenerationLogic.ParseCreditsTxt(lines.ToArray());
+				return Ok(credits);
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(500, ex.Message);
+			}
+		}
 	}
 }

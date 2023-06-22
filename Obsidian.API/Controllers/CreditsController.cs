@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Obsidian.API.Extensions;
 using Obsidian.API.Logic;
+using Obsidian.SDK.Models.Assets;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Obsidian.API.Controllers
@@ -41,6 +43,18 @@ namespace Obsidian.API.Controllers
 		public async Task<IActionResult> AddTextureCredit([FromRoute] Guid packId, [FromRoute] Guid assetId, string credits)
 		{
 			return await _logic.AddCredit(packId, assetId, credits) ? Ok() : BadRequest("Invalid");
+		}
+
+		[HttpPost("AddForMultiple/{packId}")]
+		[Authorize("write:upload-texture")]
+		[ProducesResponseType(typeof(IActionResult), 200)]
+		public async Task<IActionResult> AddCreditsBatch([FromRoute] Guid packId, [FromQuery] string query, string credits)
+		{
+			List<TextureAsset> textures = await _logic.SearchForTextures(packId, query);
+			List<Task> tasks = textures.Select(texture => _logic.AddCredit(packId, texture.Id, credits)).Cast<Task>().ToList();
+
+			await tasks.WhenAllThrottledAsync(10);
+			return Ok();
 		}
 
 		[HttpPost("Clear/{textureMappingId}")]

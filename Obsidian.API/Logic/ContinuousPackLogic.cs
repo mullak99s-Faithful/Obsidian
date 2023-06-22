@@ -1,4 +1,5 @@
 ﻿using LibGit2Sharp;
+using MongoDB.Driver.Core.Misc;
 using Obsidian.API.Git;
 using Obsidian.API.Repository;
 using Obsidian.SDK.Extensions;
@@ -23,9 +24,10 @@ namespace Obsidian.API.Logic
 		private readonly IPackPngBucket _packPngBucket;
 		private readonly IToolsLogic _toolsLogic;
 		private readonly IPackValidationLogic _packValidationLogic;
+		private readonly ITextureMetadataRepository _metadataRepository;
 		private readonly IGitOptions _gitOptions;
 
-		public ContinuousPackLogic(ITextureBucket textureBucket, ITextureMapRepository textureMapRepository, IPackRepository packRepository, IMiscBucket miscBucket, IPackPngBucket packPngBucket, IToolsLogic toolsLogic, IPackValidationLogic packValidationLogic, IGitOptions gitOptions)
+		public ContinuousPackLogic(ITextureBucket textureBucket, ITextureMapRepository textureMapRepository, IPackRepository packRepository, IMiscBucket miscBucket, IPackPngBucket packPngBucket, IToolsLogic toolsLogic, IPackValidationLogic packValidationLogic, ITextureMetadataRepository metadataRepository, IGitOptions gitOptions)
 		{
 			_textureBucket = textureBucket;
 			_textureMapRepository = textureMapRepository;
@@ -34,6 +36,7 @@ namespace Obsidian.API.Logic
 			_packPngBucket = packPngBucket;
 			_toolsLogic = toolsLogic;
 			_packValidationLogic = packValidationLogic;
+			_metadataRepository = metadataRepository;
 			_gitOptions = gitOptions;
 
 			_pushOptions = new()
@@ -210,6 +213,46 @@ namespace Obsidian.API.Logic
 				ioTasks.AddRange(downloadTasks.Select(task => task.Result)
 					.Where(x => x != null && x.MCVersion.IsMatchingVersion(br.Version))
 					.Select(asset => asset!.Extract(GetBranchPath(pack, br))));
+			}
+			await Task.WhenAll(ioTasks);
+		}
+
+		public async Task AddMetadata(Pack pack, PackBranch? branch = null, List<TextureAsset>? textureAssets = null)
+		{
+			if (textureAssets == null)
+			{
+				TextureMapping? textureMapping = await _textureMapRepository.GetTextureMappingById(pack.Id);
+				if (textureMapping == null)
+					return;
+
+				textureAssets = textureMapping.Assets;
+			}
+
+			List<PackBranch> branches = new();
+
+			if (branch == null)
+				branches.AddRange(pack.Branches);
+			else
+				branches.Add(branch);
+
+			List<Task> ioTasks = new();
+			foreach (PackBranch br in branches)
+			{
+				List<string> creditFileLines = new();
+				string branchPath = GetBranchPath(pack, br);
+				foreach (var tex in textureAssets.SelectMany(x => x.TexturePaths).Where(x => x.MCVersion.IsMatchingVersion(br.Version)))
+				{
+					TextureAsset? asset = textureAssets.Find(x => x.TexturePaths.Contains(tex));
+					if (asset == null)
+						continue;
+
+					TextureMetadata? metadata = await _metadataRepository.GetMetadata(pack.Id, asset.Id);
+					if (metadata == null)
+						continue;
+
+					creditFileLines.Add($"{Path.GetFileName(tex.Path)} ({tex.Path.Replace('\\', '/')}): {metadata.GetCredit()}");
+				}
+				ioTasks.Add(File.WriteAllLinesAsync(Path.Combine(branchPath, "Credits.txt"), creditFileLines));
 			}
 			await Task.WhenAll(ioTasks);
 		}
@@ -475,6 +518,7 @@ namespace Obsidian.API.Logic
 		Task AddModel(Pack pack, ModelAsset asset, List<TextureAsset>? textureAssets = null);
 		Task AddBlockState(Pack pack, BlockState blockState);
 		Task AddMisc(Pack pack, PackBranch? branch = null);
+		Task AddMetadata(Pack pack, PackBranch? branch = null, List<TextureAsset>? textureAssets = null);
 		Task PackAutomation(Pack pack);
 		Task PackBranchAutomation(Pack pack, PackBranch branch);
 		void DeletePackMCMeta(Pack pack, PackBranch branch);

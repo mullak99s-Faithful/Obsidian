@@ -2,8 +2,11 @@
 {
 	public class TextureMetadata
 	{
-		public Guid TextureMapId { get; set; }
-		public Guid TextureAssetId { get; set; }
 		public string? Credit { get; set; }
+
+		public string GetCredit()
+		{
+			return Credit ?? "Unknown";
+		}
 	}
 }

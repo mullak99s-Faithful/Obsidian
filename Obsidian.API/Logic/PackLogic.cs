@@ -165,7 +165,7 @@ namespace Obsidian.API.Logic
 			};
 
 			await Task.WhenAll(tasks);
-			await _continuousPackLogic.BranchValidation(pack, branch);
+			await Task.WhenAll(_continuousPackLogic.AddMetadata(pack, branch, supportedAssets), _continuousPackLogic.BranchValidation(pack, branch));
 
 			if (commit)
 				_continuousPackLogic.CommitBranch(pack, branch);
@@ -206,7 +206,7 @@ namespace Obsidian.API.Logic
 			Console.WriteLine($"Adding textures for {pack.Name}...");
 
 			List<Task> textureTasks = supportedAssets.Select(asset => _continuousPackLogic.AddTexture(pack, asset)).ToList();
-			await textureTasks.WhenAllThrottledAsync(50);
+			await textureTasks.WhenAllThrottledAsync(25);
 
 			List<Task> tasks = new() {
 				_continuousPackLogic.AddMisc(pack),
@@ -217,7 +217,7 @@ namespace Obsidian.API.Logic
 			tasks.AddRange(pack.Branches.Select(branch => AddAllBlockstates(pack, branch)));
 
 			await Task.WhenAll(tasks);
-			await _continuousPackLogic.PackValidation(pack);
+			await Task.WhenAll(_continuousPackLogic.AddMetadata(pack, null, supportedAssets), _continuousPackLogic.PackValidation(pack));
 
 			_continuousPackLogic.CommitPack(pack);
 

@@ -2,6 +2,7 @@
 using Obsidian.SDK.Models;
 using Obsidian.SDK.Models.Assets;
 using Obsidian.SDK.Models.Mappings;
+using Obsidian.SDK.Models.Minecraft;
 using Pack = Obsidian.SDK.Models.Pack;
 
 namespace Obsidian.API.Logic
@@ -42,7 +43,7 @@ namespace Obsidian.API.Logic
 			}
 			await Task.WhenAll(uploadTasks);
 
-			List<Task> postUploadTasks = new() { _continuousPackLogic.AddTexture(pack, asset) };
+			List<Task> postUploadTasks = new() { _continuousPackLogic.AddTexture(pack, asset), _continuousPackLogic.AddMetadata(pack) };
 
 			if (credits != null)
 				postUploadTasks.Add(AddCredit(pack, asset.Id, credits));
@@ -62,7 +63,7 @@ namespace Obsidian.API.Logic
 			if (asset == null)
 				return false;
 
-			return await _textureMetadata.AddOrUpdate(pack.TextureMappingsId, assetId, metadata);
+			return await _textureMetadata.AddOrUpdate(pack.Id, assetId, metadata);
 		}
 
 		public async Task<bool> AddCredit(Guid packId, Guid assetId, string credits)
@@ -112,6 +113,7 @@ namespace Obsidian.API.Logic
 					continue;
 
 				await Upload(pack, texture, textureFile, mcMetaFile);
+				NotifyCreditChanged(pack).ConfigureAwait(false).GetAwaiter();
 			}
 			return true;
 		}
@@ -204,6 +206,9 @@ namespace Obsidian.API.Logic
 
 		public async Task<bool> DeleteAllCredits(Guid? mapId = null)
 			=> await _textureMetadata.DeleteAllMetadata(mapId);
+
+		public async Task NotifyCreditChanged(Pack pack, PackBranch? branch = null, List<TextureAsset>? textureAssets = null)
+			=> await _continuousPackLogic.AddMetadata(pack, branch, textureAssets);
 	}
 
 	public interface ITextureLogic
@@ -217,5 +222,6 @@ namespace Obsidian.API.Logic
 		Task<Dictionary<Guid, string>> GetTextureCredit(Guid packId, Guid assetId);
 		Task<Dictionary<Guid, string>> SearchForTextureCredit(Guid packId, string searchQuery);
 		Task<bool> DeleteAllTextures(Guid mappingId);
+		Task NotifyCreditChanged(Pack pack, PackBranch? branch = null, List<TextureAsset>? textureAssets = null);
 	}
 }
