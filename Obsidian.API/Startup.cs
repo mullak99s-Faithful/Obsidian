@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Auth0.AuthenticationApi;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
@@ -46,6 +48,10 @@ namespace Obsidian.API
 
 			var managementApiAudience = AuthConfig.Audience;
 			services.AddSingleton(managementApiAudience);
+
+			services.AddSingleton(AuthConfig);
+
+			services.AddScoped<IAuthenticationApiClient>(_ => new AuthenticationApiClient(AuthConfig.Authority.Replace("https://", "")));
 
 			services.AddSingleton<IMongoClient>(_ =>
 			{

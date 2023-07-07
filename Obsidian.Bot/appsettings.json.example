@@ -1,0 +1,17 @@
+{
+	"Bot": {
+		"Name": "Obsidian",
+		"Author": "mullak99"
+	},
+	"Discord": {
+		"Token": "<Discord Bot Token>",
+		"Prefix": "!"
+	},
+	"Obsidian.API": {
+		"Endpoint": "https://localhost:7238/",
+		"Login": {
+			"Username": "<Username>",
+			"Password": "<Password>"
+		}
+	}
+}

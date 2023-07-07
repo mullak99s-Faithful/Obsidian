@@ -3,10 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33424.131
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Obsidian.API", "Obsidian.API\Obsidian.API.csproj", "{870AA483-6D60-45B5-9C6D-02A93080663A}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Obsidian.App", "Obsidian.App\Obsidian.App.csproj", "{3664513D-DAC0-417B-97B2-22F70C9B67C1}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Obsidian.SDK", "Obsidian.SDK\Obsidian.SDK.csproj", "{D6763C8E-4483-45DE-B62E-F2BFFB165134}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Obsidian.Bot", "Obsidian.Bot\Obsidian.Bot.csproj", "{3E860221-F7CF-4905-A492-10C39F4E3D42}"
@@ -17,14 +13,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{870AA483-6D60-45B5-9C6D-02A93080663A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{870AA483-6D60-45B5-9C6D-02A93080663A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{870AA483-6D60-45B5-9C6D-02A93080663A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{870AA483-6D60-45B5-9C6D-02A93080663A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3664513D-DAC0-417B-97B2-22F70C9B67C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3664513D-DAC0-417B-97B2-22F70C9B67C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3664513D-DAC0-417B-97B2-22F70C9B67C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3664513D-DAC0-417B-97B2-22F70C9B67C1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D6763C8E-4483-45DE-B62E-F2BFFB165134}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D6763C8E-4483-45DE-B62E-F2BFFB165134}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D6763C8E-4483-45DE-B62E-F2BFFB165134}.Release|Any CPU.ActiveCfg = Release|Any CPU

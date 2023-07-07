@@ -262,4 +262,8 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+
+# Private Keys & Tokens
+
 /Obsidian.API/appsettings.json
+/Obsidian.Bot/appsettings.json
