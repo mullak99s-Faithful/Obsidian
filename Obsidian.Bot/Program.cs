@@ -1,12 +1,11 @@
-﻿using Discord.WebSocket;
-using Discord;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
+﻿using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Obsidian.Bot.Services;
 using Obsidian.SDK;
-using System.Net.Http;
 using Obsidian.SDK.Controllers;
 using Obsidian.SDK.Models.Auth;
 

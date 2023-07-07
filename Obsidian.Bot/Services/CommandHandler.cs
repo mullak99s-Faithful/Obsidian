@@ -1,9 +1,7 @@
-﻿using Discord.Commands;
+﻿using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using System.Reflection;
-using Obsidian.Bot.Commands;
-using Discord;
-using System.Windows.Input;
 
 namespace Obsidian.Bot.Services
 {
@@ -31,7 +29,10 @@ namespace Obsidian.Bot.Services
 
 		public async Task InstallCommandsAsync()
 		{
+			// Client
 			_client.MessageReceived += HandleCommandAsync;
+
+			// Commands
 			_commands.CommandExecuted += HandleCommandExecuted;
 
 			// Auto-discover modules
@@ -75,7 +76,6 @@ namespace Obsidian.Bot.Services
 					await context.Channel.SendMessageAsync($"Failed to execute command '{command.Value.Name}': {errorMessage}");
 				else
 					await context.Channel.SendMessageAsync($"An error occurred: {errorMessage}");
-
 			}
 		}
 	}
